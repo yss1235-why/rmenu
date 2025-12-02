@@ -1,8 +1,8 @@
 import { MenuItem } from '@/types/menu';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus } from 'lucide-react';
+import { getOptimizedImageUrl } from '@/lib/cloudinary';
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -10,42 +10,74 @@ interface MenuItemCardProps {
 }
 
 export const MenuItemCard = ({ item, onAddToCart }: MenuItemCardProps) => {
+  // Get optimized image URL from Cloudinary
+  const imageUrl = getOptimizedImageUrl(item.image, 'menuCard');
+
   return (
-    <Card className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-border/50">
-      <div className="relative aspect-square overflow-hidden">
+    <div className="menu-card no-select">
+      {/* Image Container */}
+      <div className="relative">
         <img
-          src={item.image}
+          src={imageUrl}
           alt={item.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="menu-card-image"
+          loading="lazy"
+          onError={(e) => {
+            // Fallback to original image if optimization fails
+            (e.target as HTMLImageElement).src = item.image;
+          }}
         />
         {item.isSpecial && (
-          <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground">
+          <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground text-xs px-2 py-1">
             Special
           </Badge>
         )}
+        {!item.available && (
+          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+            <span className="text-muted-foreground font-medium">Unavailable</span>
+          </div>
+        )}
       </div>
-      <div className="p-5">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="font-serif text-xl font-semibold text-foreground">
+
+      {/* Content */}
+      <div className="p-4">
+        <div className="flex justify-between items-start gap-2 mb-2">
+          <h3 className="font-serif text-lg font-semibold text-foreground leading-tight">
             {item.name}
           </h3>
-          <span className="font-serif text-lg text-primary font-semibold ml-2">
+          <span className="font-serif text-lg text-primary font-bold whitespace-nowrap">
             ${item.price.toFixed(2)}
           </span>
         </div>
-        <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+
+        <p className="text-muted-foreground text-sm mb-3 line-clamp-2 leading-relaxed">
           {item.description}
         </p>
+
+        {/* Tags */}
+        {item.tags && item.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {item.tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-xs px-2 py-0.5 bg-muted/50 text-muted-foreground rounded-full"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
         <Button
           onClick={() => onAddToCart(item)}
           disabled={!item.available}
-          className="w-full group/btn"
-          variant="default"
+          className="w-full touch-btn rounded-xl font-semibold"
+          size="lg"
         >
-          <Plus className="w-4 h-4 mr-2 group-hover/btn:rotate-90 transition-transform" />
+          <Plus className="w-5 h-5 mr-2" />
           {item.available ? 'Add to Order' : 'Unavailable'}
         </Button>
       </div>
-    </Card>
+    </div>
   );
 };
