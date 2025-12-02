@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { SplashScreen } from '@/components/SplashScreen';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { CategorySection } from '@/components/CategorySection';
@@ -11,7 +11,8 @@ import { useDemoMenu } from '@/hooks/useMenu';
 import { useDemoRestaurant } from '@/hooks/useRestaurant';
 import { useCart } from '@/hooks/useCart';
 import { MenuItem } from '@/types/menu';
-import { UtensilsCrossed } from 'lucide-react';
+import { UtensilsCrossed, UserCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -84,33 +85,39 @@ const Index = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isLoading, showSplash, categories]);
 
-  const handleAddToCart = (item: MenuItem) => {
-    cart.addItem(item);
-    toast({
-      title: 'Added to order',
-      description: `${item.name} added to your order`,
-    });
-  };
-
+  // Handle category click
   const handleCategoryClick = (categoryId: string) => {
     setActiveCategory(categoryId);
     const element = document.getElementById(`category-${categoryId}`);
     if (element) {
-      const headerOffset = 140;
+      const offset = 140;
       const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth',
+      });
     }
   };
 
-  const handleSubmitOrder = async (notes: string) => {
+  // Handle add to cart
+  const handleAddToCart = (item: MenuItem, quantity: number = 1) => {
+    cart.addItem(item, quantity);
+    toast({
+      title: 'Added to cart',
+      description: `${item.name} x${quantity}`,
+    });
+  };
+
+  // Handle order submission
+  const handleSubmitOrder = async () => {
     try {
-      // In production, this would call orderService.createOrder()
-      console.log('Order submitted:', {
+      // TODO: Integrate with orderService when Firebase is configured
+      console.log('Submitting order:', {
         items: cart.items,
-        notes,
         tableNumber,
-        total: cart.calculateTotal(restaurant.settings.taxRate),
+        restaurantSlug,
       });
 
       toast({
@@ -143,16 +150,31 @@ const Index = () => {
       {/* Header */}
       <header className="app-header">
         <div className="px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
-              <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
+          <div className="flex items-center justify-between">
+            {/* Left side - Restaurant info */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
+                <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="font-serif text-xl font-bold text-foreground truncate">
+                  {restaurant.name}
+                </h1>
+                <p className="text-xs text-muted-foreground">Table {tableNumber}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h1 className="font-serif text-xl font-bold text-foreground truncate">
-                {restaurant.name}
-              </h1>
-              <p className="text-xs text-muted-foreground">Table {tableNumber}</p>
-            </div>
+
+            {/* Right side - Staff Login Button */}
+            <Link to="/login">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              >
+                <UserCircle className="w-5 h-5" />
+                <span className="ml-2 hidden sm:inline text-sm">Staff</span>
+              </Button>
+            </Link>
           </div>
         </div>
 
