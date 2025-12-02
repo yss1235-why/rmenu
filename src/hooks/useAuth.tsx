@@ -1,15 +1,25 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User } from 'firebase/auth';
 import { authService } from '@/lib/firebase';
 import { staffService } from '@/services/staffService';
 import { Staff, StaffRole, hasPermission, RolePermissions } from '@/types/staff';
 
+// Auth status types for better state management
+type AuthStatus = 
+  | 'loading'           // Initial loading state
+  | 'unauthenticated'   // No Firebase user
+  | 'checking_staff'    // Firebase user exists, checking staff record
+  | 'not_staff'         // Firebase user exists but no staff record
+  | 'pending_approval'  // Staff record exists but not approved
+  | 'authenticated';    // Fully authenticated and approved
+
 interface AuthContextValue {
   user: User | null;
   staff: Staff | null;
   loading: boolean;
+  status: AuthStatus;
   error: Error | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
   isApproved: boolean;
@@ -27,26 +37,64 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [staff, setStaff] = useState<Staff | null>(null);
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<AuthStatus>('loading');
   const [error, setError] = useState<Error | null>(null);
 
+  // Check for redirect result on mount (for mobile Google Sign-In)
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      try {
+        const redirectUser = await authService.getGoogleRedirectResult();
+        if (redirectUser) {
+          // User will be handled by onAuthChange
+          console.log('Redirect sign-in successful');
+        }
+      } catch (err) {
+        console.error('Error checking redirect result:', err);
+      }
+    };
+
+    checkRedirectResult();
+  }, []);
+
+  // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = authService.onAuthChange(async (firebaseUser) => {
       setUser(firebaseUser);
+      setError(null);
 
       if (firebaseUser?.email) {
+        setStatus('checking_staff');
+        
         try {
+          // Check if this email exists in staff collection
           const staffData = await staffService.getStaffByEmail(firebaseUser.email);
-          setStaff(staffData);
-
+          
           if (staffData) {
-            await staffService.updateLastLogin(staffData.id);
+            setStaff(staffData);
+            
+            if (staffData.isApproved) {
+              // Update last login timestamp
+              await staffService.updateLastLogin(staffData.id);
+              setStatus('authenticated');
+            } else {
+              setStatus('pending_approval');
+            }
+          } else {
+            // User authenticated with Google but not in staff collection
+            setStaff(null);
+            setStatus('not_staff');
           }
         } catch (err) {
           console.error('Error fetching staff data:', err);
           setStaff(null);
+          setStatus('not_staff');
+          setError(err instanceof Error ? err : new Error('Failed to verify staff access'));
         }
       } else {
+        // No Firebase user
         setStaff(null);
+        setStatus('unauthenticated');
       }
 
       setLoading(false);
@@ -55,40 +103,61 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  // Google Sign-In
+  const signInWithGoogle = useCallback(async () => {
     try {
       setError(null);
-      await authService.signIn(email, password);
+      setLoading(true);
+      
+      // Try popup first (works on desktop)
+      // On mobile, this might fail and we'll need to use redirect
+      try {
+        await authService.signInWithGoogle();
+      } catch (popupError: any) {
+        // If popup blocked or failed, try redirect method
+        if (popupError?.code === 'auth/popup-blocked' || 
+            popupError?.code === 'auth/popup-closed-by-user') {
+          console.log('Popup blocked/closed, trying redirect...');
+          await authService.signInWithGoogleRedirect();
+        } else {
+          throw popupError;
+        }
+      }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Sign in failed'));
+      setLoading(false);
+      setError(err instanceof Error ? err : new Error('Google sign-in failed'));
       throw err;
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  // Sign Out
+  const signOut = useCallback(async () => {
     try {
       await authService.signOut();
       setStaff(null);
+      setStatus('unauthenticated');
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Sign out failed'));
       throw err;
     }
-  };
+  }, []);
 
-  const checkPermission = (permission: keyof RolePermissions): boolean => {
+  // Check permission
+  const checkPermission = useCallback((permission: keyof RolePermissions): boolean => {
     if (!staff?.role) return false;
     return hasPermission(staff.role, permission);
-  };
+  }, [staff?.role]);
 
   const value: AuthContextValue = {
     user,
     staff,
     loading,
+    status,
     error,
-    signIn,
+    signInWithGoogle,
     signOut,
-    isAuthenticated: !!user && !!staff,
-    isApproved: !!staff?.isApproved,
+    isAuthenticated: status === 'authenticated',
+    isApproved: staff?.isApproved ?? false,
     role: staff?.role || null,
     checkPermission,
   };
@@ -104,50 +173,46 @@ export const useAuth = () => {
   return context;
 };
 
-// Demo auth hook for development without Firebase
-export const useDemoAuth = () => {
-  const [currentStaff, setCurrentStaff] = useState<Staff | null>({
-    id: 'demo-admin',
-    restaurantId: 'demo',
-    email: 'admin@demo.com',
-    name: 'Demo Admin',
-    role: 'admin',
-    isActive: true,
-    isApproved: true,
-    createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-    updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-  });
+// Protected Route component
+interface ProtectedRouteProps {
+  children: ReactNode;
+  requiredPermission?: keyof RolePermissions;
+  fallback?: ReactNode;
+}
 
-  const switchRole = (role: StaffRole) => {
-    setCurrentStaff((prev) =>
-      prev
-        ? {
-            ...prev,
-            role,
-            name: `Demo ${role.charAt(0).toUpperCase() + role.slice(1)}`,
-          }
-        : null
+export const ProtectedRoute = ({ 
+  children, 
+  requiredPermission,
+  fallback 
+}: ProtectedRouteProps) => {
+  const { isAuthenticated, loading, checkPermission } = useAuth();
+
+  if (loading) {
+    return fallback || (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+      </div>
     );
-  };
+  }
 
-  const checkPermission = (permission: keyof RolePermissions): boolean => {
-    if (!currentStaff?.role) return false;
-    return hasPermission(currentStaff.role, permission);
-  };
+  if (!isAuthenticated) {
+    return null; // Will be handled by route navigation
+  }
 
-  return {
-    user: null,
-    staff: currentStaff,
-    loading: false,
-    error: null,
-    isAuthenticated: true,
-    isApproved: true,
-    role: currentStaff?.role || null,
-    checkPermission,
-    switchRole, // Demo only
-    signIn: async () => {},
-    signOut: async () => {
-      setCurrentStaff(null);
-    },
-  };
+  if (requiredPermission && !checkPermission(requiredPermission)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+            Access Denied
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">
+            You don't have permission to access this page.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 };
