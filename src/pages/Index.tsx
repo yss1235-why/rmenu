@@ -1,86 +1,193 @@
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { UtensilsCrossed, QrCode, Smartphone, ChefHat } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { SplashScreen } from '@/components/SplashScreen';
+import { CategorySection } from '@/components/CategorySection';
+import { CategoryNav } from '@/components/CategoryNav';
+import { Cart } from '@/components/Cart';
+import { menuItems, categories } from '@/data/sampleMenu';
+import { MenuItem, CartItem } from '@/types/menu';
+import { useToast } from '@/hooks/use-toast';
+import { UtensilsCrossed } from 'lucide-react';
+
+const RESTAURANT_NAME = "Flavor Haven";
 
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-        
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-full mb-6 animate-fade-in">
-              <UtensilsCrossed className="w-10 h-10 text-primary-foreground" />
-            </div>
-            
-            <h1 className="font-serif text-5xl md:text-7xl font-bold text-foreground mb-6 animate-fade-in">
-              La Maison
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-muted-foreground mb-8 animate-fade-in">
-              Experience dining reimagined. Browse our menu, order seamlessly, and enjoy.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
-              <Button asChild size="lg" className="text-lg px-8">
-                <Link to="/menu?table=1">
-                  <Smartphone className="w-5 h-5 mr-2" />
-                  View Menu
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="text-lg px-8">
-                <Link to="/dashboard">
-                  <ChefHat className="w-5 h-5 mr-2" />
-                  Staff Login
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+  const [searchParams] = useSearchParams();
+  const [isLoading, setIsLoading] = useState(true);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [tableNumber, setTableNumber] = useState<string>('');
+  const [activeCategory, setActiveCategory] = useState<string>('');
+  const { toast } = useToast();
 
-      {/* Features Section */}
-      <section className="py-20 bg-card">
-        <div className="container mx-auto px-4">
-          <h2 className="font-serif text-3xl md:text-4xl font-bold text-center mb-12">
-            Modern Dining Experience
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <QrCode className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="font-serif text-xl font-semibold mb-2">Scan & Order</h3>
-              <p className="text-muted-foreground">
-                Simply scan the QR code at your table to start ordering
-              </p>
+  // Initial loading and splash screen
+  useEffect(() => {
+    const table = searchParams.get('table') || '1';
+    setTableNumber(table);
+
+    // Simulate loading time for splash screen
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [searchParams]);
+
+  // Set initial active category
+  useEffect(() => {
+    if (!isLoading && categories.length > 0) {
+      const firstActiveCategory = categories.find(c => c.active);
+      if (firstActiveCategory) {
+        setActiveCategory(firstActiveCategory.id);
+      }
+    }
+  }, [isLoading]);
+
+  // Track scroll position to update active category
+  useEffect(() => {
+    if (isLoading) return;
+
+    const handleScroll = () => {
+      const categoryElements = categories
+        .filter(c => c.active)
+        .map(c => ({
+          id: c.id,
+          element: document.getElementById(`category-${c.id}`)
+        }))
+        .filter(c => c.element);
+
+      const scrollPosition = window.scrollY + 160;
+
+      for (let i = categoryElements.length - 1; i >= 0; i--) {
+        const { id, element } = categoryElements[i];
+        if (element && element.offsetTop <= scrollPosition) {
+          setActiveCategory(id);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isLoading]);
+
+  const handleAddToCart = (item: MenuItem) => {
+    setCart((prevCart) => {
+      const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
+      if (existingItem) {
+        return prevCart.map((cartItem) =>
+          cartItem.id === item.id
+            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            : cartItem
+        );
+      }
+      return [...prevCart, { ...item, quantity: 1 }];
+    });
+    toast({
+      title: 'Added to order',
+      description: `${item.name} added to your order`,
+    });
+  };
+
+  const handleUpdateQuantity = (itemId: string, quantity: number) => {
+    if (quantity === 0) {
+      handleRemoveItem(itemId);
+      return;
+    }
+    setCart((prevCart) =>
+      prevCart.map((item) =>
+        item.id === itemId ? { ...item, quantity } : item
+      )
+    );
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    setCart((prevCart) => prevCart.filter((item) => item.id !== itemId));
+    toast({
+      title: 'Item removed',
+      description: 'Item removed from your order',
+    });
+  };
+
+  const handleSubmitOrder = (notes: string) => {
+    console.log('Order submitted:', { cart, notes, tableNumber });
+    toast({
+      title: 'Order placed!',
+      description: `Your order has been sent to the kitchen. Table ${tableNumber}`,
+    });
+    setCart([]);
+  };
+
+  const handleCategoryClick = (categoryId: string) => {
+    setActiveCategory(categoryId);
+  };
+
+  // Show splash screen while loading
+  if (isLoading) {
+    return <SplashScreen restaurantName={RESTAURANT_NAME} />;
+  }
+
+  // Get active categories
+  const activeCategories = categories.filter(c => c.active);
+
+  return (
+    <div className="app-shell bg-background">
+      {/* Header */}
+      <header className="app-header">
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
+              <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
             </div>
-            
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Smartphone className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="font-serif text-xl font-semibold mb-2">Beautiful Menu</h3>
-              <p className="text-muted-foreground">
-                Browse our elegant digital menu with stunning food photography
-              </p>
-            </div>
-            
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ChefHat className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="font-serif text-xl font-semibold mb-2">Real-time Updates</h3>
-              <p className="text-muted-foreground">
-                Track your order status from kitchen to table in real-time
-              </p>
+            <div className="min-w-0">
+              <h1 className="font-serif text-xl font-bold text-foreground truncate">
+                {RESTAURANT_NAME}
+              </h1>
+              <p className="text-xs text-muted-foreground">Table {tableNumber}</p>
             </div>
           </div>
         </div>
-      </section>
+        
+        {/* Category Navigation */}
+        <CategoryNav
+          categories={activeCategories}
+          activeCategory={activeCategory}
+          onCategoryClick={handleCategoryClick}
+        />
+      </header>
+
+      {/* Menu Content */}
+      <main className="app-content">
+        <div className="px-4 py-6">
+          {activeCategories.map((category) => {
+            const categoryItems = menuItems.filter(
+              (item) => item.categoryId === category.id && item.available
+            );
+            
+            // Also include special items in their respective categories
+            const specialItems = category.id === 'specials' 
+              ? menuItems.filter(item => item.isSpecial && item.available)
+              : categoryItems;
+              
+            return (
+              <CategorySection
+                key={category.id}
+                category={category}
+                items={category.id === 'specials' ? specialItems : categoryItems}
+                onAddToCart={handleAddToCart}
+              />
+            );
+          })}
+        </div>
+      </main>
+
+      {/* Cart */}
+      <Cart
+        items={cart}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemoveItem={handleRemoveItem}
+        onSubmitOrder={handleSubmitOrder}
+        tableNumber={tableNumber}
+      />
     </div>
   );
 };
