@@ -1,66 +1,80 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { SplashScreen } from '@/components/SplashScreen';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { CategorySection } from '@/components/CategorySection';
 import { CategoryNav } from '@/components/CategoryNav';
 import { Cart } from '@/components/Cart';
-import { menuItems, categories } from '@/data/sampleMenu';
-import { MenuItem, CartItem } from '@/types/menu';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/theme';
+import { useDemoMenu } from '@/hooks/useMenu';
+import { useDemoRestaurant } from '@/hooks/useRestaurant';
+import { useCart } from '@/hooks/useCart';
+import { MenuItem } from '@/types/menu';
 import { UtensilsCrossed } from 'lucide-react';
-
-const RESTAURANT_NAME = "Flavor Haven";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
-  const [isLoading, setIsLoading] = useState(true);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [tableNumber, setTableNumber] = useState<string>('');
-  const [activeCategory, setActiveCategory] = useState<string>('');
+  const { restaurantSlug, tableNumber: tableParam } = useParams();
+  const { theme } = useTheme();
   const { toast } = useToast();
 
-  // Initial loading and splash screen
+  // State
+  const [showSplash, setShowSplash] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<string>('');
+  const [tableNumber, setTableNumber] = useState<string>('');
+
+  // Use demo data (replace with real hooks when Firebase is configured)
+  const restaurant = useDemoRestaurant();
+  const { categories, menuItems, getItemsByCategory, specialItems } = useDemoMenu();
+  const cart = useCart();
+
+  // Get table number from params or query
   useEffect(() => {
-    const table = searchParams.get('table') || '1';
+    const table = tableParam || searchParams.get('table') || '1';
     setTableNumber(table);
+  }, [tableParam, searchParams]);
 
-    // Simulate loading time for splash screen
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
+  // Handle splash screen
+  useEffect(() => {
+    const splashTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, theme.splash.duration);
 
-    return () => clearTimeout(timer);
-  }, [searchParams]);
+    return () => clearTimeout(splashTimer);
+  }, [theme.splash.duration]);
+
+  // Handle loading state after splash
+  useEffect(() => {
+    if (!showSplash) {
+      // Simulate data loading
+      const loadTimer = setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
+      return () => clearTimeout(loadTimer);
+    }
+  }, [showSplash]);
 
   // Set initial active category
   useEffect(() => {
-    if (!isLoading && categories.length > 0) {
-      const firstActiveCategory = categories.find(c => c.active);
-      if (firstActiveCategory) {
-        setActiveCategory(firstActiveCategory.id);
-      }
+    if (!isLoading && categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0].id);
     }
-  }, [isLoading]);
+  }, [isLoading, categories, activeCategory]);
 
   // Track scroll position to update active category
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || showSplash) return;
 
     const handleScroll = () => {
-      const categoryElements = categories
-        .filter(c => c.active)
-        .map(c => ({
-          id: c.id,
-          element: document.getElementById(`category-${c.id}`)
-        }))
-        .filter(c => c.element);
-
       const scrollPosition = window.scrollY + 160;
 
-      for (let i = categoryElements.length - 1; i >= 0; i--) {
-        const { id, element } = categoryElements[i];
+      for (let i = categories.length - 1; i >= 0; i--) {
+        const category = categories[i];
+        const element = document.getElementById(`category-${category.id}`);
         if (element && element.offsetTop <= scrollPosition) {
-          setActiveCategory(id);
+          setActiveCategory(category.id);
           break;
         }
       }
@@ -68,66 +82,61 @@ const Index = () => {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isLoading]);
+  }, [isLoading, showSplash, categories]);
 
   const handleAddToCart = (item: MenuItem) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
-      if (existingItem) {
-        return prevCart.map((cartItem) =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
-      }
-      return [...prevCart, { ...item, quantity: 1 }];
-    });
+    cart.addItem(item);
     toast({
       title: 'Added to order',
       description: `${item.name} added to your order`,
     });
   };
 
-  const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    if (quantity === 0) {
-      handleRemoveItem(itemId);
-      return;
-    }
-    setCart((prevCart) =>
-      prevCart.map((item) =>
-        item.id === itemId ? { ...item, quantity } : item
-      )
-    );
-  };
-
-  const handleRemoveItem = (itemId: string) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== itemId));
-    toast({
-      title: 'Item removed',
-      description: 'Item removed from your order',
-    });
-  };
-
-  const handleSubmitOrder = (notes: string) => {
-    console.log('Order submitted:', { cart, notes, tableNumber });
-    toast({
-      title: 'Order placed!',
-      description: `Your order has been sent to the kitchen. Table ${tableNumber}`,
-    });
-    setCart([]);
-  };
-
   const handleCategoryClick = (categoryId: string) => {
     setActiveCategory(categoryId);
+    const element = document.getElementById(`category-${categoryId}`);
+    if (element) {
+      const headerOffset = 140;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+    }
   };
 
-  // Show splash screen while loading
-  if (isLoading) {
-    return <SplashScreen restaurantName={RESTAURANT_NAME} />;
+  const handleSubmitOrder = async (notes: string) => {
+    try {
+      // In production, this would call orderService.createOrder()
+      console.log('Order submitted:', {
+        items: cart.items,
+        notes,
+        tableNumber,
+        total: cart.calculateTotal(restaurant.settings.taxRate),
+      });
+
+      toast({
+        title: 'Order placed!',
+        description: `Your order has been sent to the kitchen. Table ${tableNumber}`,
+      });
+
+      cart.clearCart();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to place order. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Show splash screen
+  if (showSplash) {
+    return <SplashScreen restaurantName={restaurant.name} />;
   }
 
-  // Get active categories
-  const activeCategories = categories.filter(c => c.active);
+  // Show loading screen
+  if (isLoading) {
+    return <LoadingScreen message="Loading menu..." />;
+  }
 
   return (
     <div className="app-shell bg-background">
@@ -140,16 +149,16 @@ const Index = () => {
             </div>
             <div className="min-w-0">
               <h1 className="font-serif text-xl font-bold text-foreground truncate">
-                {RESTAURANT_NAME}
+                {restaurant.name}
               </h1>
               <p className="text-xs text-muted-foreground">Table {tableNumber}</p>
             </div>
           </div>
         </div>
-        
+
         {/* Category Navigation */}
         <CategoryNav
-          categories={activeCategories}
+          categories={categories}
           activeCategory={activeCategory}
           onCategoryClick={handleCategoryClick}
         />
@@ -158,33 +167,45 @@ const Index = () => {
       {/* Menu Content */}
       <main className="app-content">
         <div className="px-4 py-6">
-          {activeCategories.map((category) => {
-            const categoryItems = menuItems.filter(
-              (item) => item.categoryId === category.id && item.available
-            );
-            
-            // Also include special items in their respective categories
-            const specialItems = category.id === 'specials' 
-              ? menuItems.filter(item => item.isSpecial && item.available)
-              : categoryItems;
-              
-            return (
-              <CategorySection
-                key={category.id}
-                category={category}
-                items={category.id === 'specials' ? specialItems : categoryItems}
-                onAddToCart={handleAddToCart}
-              />
-            );
-          })}
+          {/* Specials Section */}
+          {specialItems.length > 0 && (
+            <CategorySection
+              category={{
+                id: 'specials',
+                restaurantId: restaurant.id,
+                name: "Today's Specials",
+                order: 0,
+                active: true,
+              }}
+              items={specialItems}
+              onAddToCart={handleAddToCart}
+            />
+          )}
+
+          {/* Regular Categories */}
+          {categories
+            .filter((c) => c.id !== 'specials')
+            .map((category) => {
+              const categoryItems = getItemsByCategory(category.id);
+              if (categoryItems.length === 0) return null;
+
+              return (
+                <CategorySection
+                  key={category.id}
+                  category={category}
+                  items={categoryItems}
+                  onAddToCart={handleAddToCart}
+                />
+              );
+            })}
         </div>
       </main>
 
       {/* Cart */}
       <Cart
-        items={cart}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
+        items={cart.items}
+        onUpdateQuantity={cart.updateQuantity}
+        onRemoveItem={cart.removeItem}
         onSubmitOrder={handleSubmitOrder}
         tableNumber={tableNumber}
       />
