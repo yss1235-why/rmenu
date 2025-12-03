@@ -141,9 +141,9 @@ const StaffDashboard = () => {
   const photoURL = user?.photoURL || undefined;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-background via-card to-muted/20 dark:from-background dark:via-card dark:to-background">
       {/* Mobile Header */}
-      <header className="lg:hidden sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
+      <header className="lg:hidden sticky top-0 z-50 bg-card/80 dark:bg-card/80 backdrop-blur-xl border-b border-border/50 dark:border-border/50">
         <div className="flex items-center justify-between px-4 h-16">
           <Button
             variant="ghost"
@@ -155,7 +155,7 @@ const StaffDashboard = () => {
           <h1 className="text-lg font-serif font-semibold">Dashboard</h1>
           <Avatar className="w-8 h-8">
             <AvatarImage src={photoURL} />
-            <AvatarFallback className="bg-violet-100 dark:bg-violet-900 text-violet-700 dark:text-violet-300 text-xs">
+            <AvatarFallback className="bg-primary/10 dark:bg-primary/20 text-primary text-xs">
               {getInitials(displayName)}
             </AvatarFallback>
           </Avatar>
@@ -172,16 +172,16 @@ const StaffDashboard = () => {
 
       {/* Sidebar */}
       <aside className={`
-        fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800
+        fixed top-0 left-0 z-50 h-full w-72 bg-card dark:bg-card border-r border-border dark:border-border
         transform transition-transform duration-300 ease-in-out
         lg:translate-x-0
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
-          <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+         <div className="p-6 border-b border-border dark:border-border">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-serif font-semibold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+              <h2 className="text-xl font-serif font-semibold bg-gradient-to-r from-primary to-accent-foreground bg-clip-text text-transparent">
                 Restaurant
               </h2>
               <Button
@@ -194,9 +194,9 @@ const StaffDashboard = () => {
               </Button>
             </div>
             <div className="flex items-center gap-3">
-              <Avatar className="w-10 h-10">
+             <Avatar className="w-10 h-10">
                 <AvatarImage src={photoURL} />
-                <AvatarFallback className="bg-violet-100 dark:bg-violet-900 text-violet-700 dark:text-violet-300">
+                <AvatarFallback className="bg-primary/10 dark:bg-primary/20 text-primary">
                   {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
@@ -231,9 +231,9 @@ const StaffDashboard = () => {
                     className={`
                       w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
                       transition-colors
-                      ${isActive 
-                        ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300' 
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                     ${isActive 
+                        ? 'bg-primary/10 dark:bg-primary/20 text-primary' 
+                        : 'text-muted-foreground hover:bg-muted/50 dark:hover:bg-muted/20'
                       }
                     `}
                   >
@@ -246,10 +246,10 @@ const StaffDashboard = () => {
           </ScrollArea>
 
           {/* Sidebar Footer */}
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="p-4 border-t border-border dark:border-border">
             <Button
               variant="ghost"
-              className="w-full justify-start text-slate-600 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20"
               onClick={handleSignOut}
             >
               <LogOut className="w-5 h-5 mr-3" />
@@ -264,7 +264,7 @@ const StaffDashboard = () => {
         <div className="p-6 lg:p-8">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-2xl lg:text-3xl font-serif font-semibold text-slate-900 dark:text-white">
+            <h1 className="text-2xl lg:text-3xl font-serif font-semibold text-foreground">
               {activeTab === 'overview' && 'Dashboard Overview'}
               {activeTab === 'orders' && 'Order Management'}
               {activeTab === 'tables' && 'Table Management'}
@@ -272,7 +272,7 @@ const StaffDashboard = () => {
               {activeTab === 'menu' && 'Menu Management'}
               {activeTab === 'staff' && 'Staff Management'}
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
+            <p className="text-muted-foreground mt-1">
               Welcome back, {displayName.split(' ')[0]}!
             </p>
           </div>
@@ -282,7 +282,7 @@ const StaffDashboard = () => {
             <div className="space-y-6">
               {/* Loading indicator */}
               {(ordersLoading || tablesLoading) && (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <RefreshCw className="w-4 h-4 animate-spin" />
                   Loading real-time data...
                 </div>
@@ -291,43 +291,44 @@ const StaffDashboard = () => {
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/50">
+                 <Card className="bg-warning/10 dark:bg-warning/5 border-warning/20 dark:border-warning/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Pending</p>
-                        <p className="text-3xl font-bold text-amber-700 dark:text-amber-300 mt-1">
+                        <p className="text-sm font-medium text-warning">Pending</p>
+                        <p className="text-3xl font-bold text-warning mt-1">
                           {stats.pendingOrders}
                         </p>
                       </div>
-                      <Clock className="w-8 h-8 text-amber-500/50" />
+                      <Clock className="w-8 h-8 text-warning/50" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-800/50">
+                <Card className="bg-info/10 dark:bg-info/5 border-info/20 dark:border-info/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Preparing</p>
-                        <p className="text-3xl font-bold text-blue-700 dark:text-blue-300 mt-1">
+                        <p className="text-sm font-medium text-info">Preparing</p>
+                        <p className="text-3xl font-bold text-info mt-1">
                           {stats.preparingOrders}
                         </p>
                       </div>
-                      <AlertCircle className="w-8 h-8 text-blue-500/50" />
+                      <AlertCircle className="w-8 h-8 text-info/50" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-800/50">
+                <Card className="bg-success/10 dark:bg-success/5 border-success/20 dark:border-success/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Ready</p>
-                        <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300 mt-1">
+                        <p className="text-sm font-medium text-success">Ready</p>
+                        <p className="text-3xl font-bold text-success mt-1">
                           {stats.readyOrders}
                         </p>
                       </div>
-                      <CheckCircle2 className="w-8 h-8 text-emerald-500/50" />
+                      <CheckCircle2 className="w-8 h-8 text-success/50" />
                     </div>
                   </CardContent>
                 </Card>
@@ -399,26 +400,25 @@ const StaffDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     {orders.length === 0 ? (
-                      <div className="text-center py-8 text-slate-500">
+                      <div className="text-center py-8 text-muted-foreground">
                         <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p>No orders yet</p>
                         <p className="text-sm">Orders will appear here</p>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-600 dark:text-slate-400">Completed Orders</span>
-                          <span className="font-semibold text-emerald-600">{stats.completedToday}</span>
+                      <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Completed Orders</span>
+                          <span className="font-semibold text-success">{stats.completedToday}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-600 dark:text-slate-400">Active Orders</span>
-                          <span className="font-semibold text-blue-600">
+                          <span className="text-muted-foreground">Active Orders</span>
+                          <span className="font-semibold text-info">
                             {stats.pendingOrders + stats.preparingOrders + stats.readyOrders}
                           </span>
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t">
-                          <span className="text-slate-600 dark:text-slate-400 font-medium">Total Revenue</span>
-                          <span className="font-bold text-lg text-violet-600">₹{stats.totalRevenue.toFixed(2)}</span>
+                          <span className="text-muted-foreground font-medium">Total Revenue</span>
+                          <span className="font-bold text-lg text-primary">₹{stats.totalRevenue.toFixed(2)}</span>
                         </div>
                       </div>
                     )}
