@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { tableService, generateTableLink } from '@/services/tableService';
-import { Table, TableStatus, TableLink } from '@/types/table';
+import { tableService } from '@/services/tableService';
+import { Table, TableStatus, TableLink, generateTableLink } from '@/types/table';
 
 interface UseTablesOptions {
   restaurantId: string;
