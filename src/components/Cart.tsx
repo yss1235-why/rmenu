@@ -27,19 +27,19 @@ export const Cart = ({ items, onUpdateQuantity, onRemoveItem, onSubmitOrder, tab
     setIsOpen(false);
   };
 
-  if (items.length === 0) return null;
-
   return (
     <>
-      {/* Floating Cart Button */}
+      {/* Floating Cart Button - Always visible */}
       <button
         onClick={() => setIsOpen(true)}
         className="fab w-16 h-16 bg-primary text-primary-foreground flex items-center justify-center touch-btn"
       >
         <ShoppingBag className="w-6 h-6" />
-        <Badge className="absolute -top-1 -right-1 h-6 w-6 rounded-full p-0 flex items-center justify-center bg-destructive text-destructive-foreground text-xs font-bold">
-          {totalItems}
-        </Badge>
+        {totalItems > 0 && (
+          <Badge className="absolute -top-1 -right-1 h-6 w-6 rounded-full p-0 flex items-center justify-center bg-destructive text-destructive-foreground text-xs font-bold">
+            {totalItems}
+          </Badge>
+        )}
       </button>
 
       {/* Backdrop */}
