@@ -349,12 +349,17 @@ const Index = () => {
                 )}
               </SheetContent>
             </Sheet>
-         {/* Login Button */}
+        </Sheet>
+
+            {/* Login Button */}
             <Link to="/login">
               <Button variant="ghost" size="icon" className="rounded-full">
                 <LogIn className="w-5 h-5" />
               </Button>
             </Link>
+          </div>
+        </div>
+      </header>
 
       {/* Active Order Banner */}
       {activeOrder && (
