@@ -36,12 +36,12 @@ import { useToast } from '@/hooks/use-toast';
 const RESTAURANT_ID = import.meta.env.VITE_RESTAURANT_ID || 'demo';
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; icon: typeof Clock }> = {
-  pending: { label: 'Pending', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', icon: Clock },
-  confirmed: { label: 'Confirmed', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: CheckCircle2 },
-  preparing: { label: 'Preparing', color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300', icon: ChefHat },
-  ready: { label: 'Ready', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300', icon: Bell },
-  completed: { label: 'Completed', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300', icon: CheckCircle2 },
-  cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', icon: XCircle },
+  pending: { label: 'Pending', color: 'bg-warning/10 text-warning dark:bg-warning/20 dark:text-warning', icon: Clock },
+  confirmed: { label: 'Confirmed', color: 'bg-info/10 text-info dark:bg-info/20 dark:text-info', icon: CheckCircle2 },
+  preparing: { label: 'Preparing', color: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary', icon: ChefHat },
+  ready: { label: 'Ready', color: 'bg-success/10 text-success dark:bg-success/20 dark:text-success', icon: Bell },
+  completed: { label: 'Completed', color: 'bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground', icon: CheckCircle2 },
+  cancelled: { label: 'Cancelled', color: 'bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive', icon: XCircle },
 };
 
 export const OrdersPanel = () => {
