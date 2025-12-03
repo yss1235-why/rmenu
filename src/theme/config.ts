@@ -167,7 +167,6 @@ export const defaultTheme: ThemeConfig = {
       infoForeground: '217 91% 97%',
     },
     dark: {
-    dark: {
       primary: '234 89% 73%',
       primaryForeground: '243 47% 20%',
       secondary: '0 0% 45%',
