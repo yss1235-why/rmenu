@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { 
   ShoppingCart, 
   Plus, 
@@ -12,7 +12,8 @@ import {
   Phone,
   ChevronRight,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  LogIn
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -348,9 +349,12 @@ const Index = () => {
                 )}
               </SheetContent>
             </Sheet>
-          </div>
-        </div>
-      </header>
+         {/* Login Button */}
+            <Link to="/login">
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <LogIn className="w-5 h-5" />
+              </Button>
+            </Link>
 
       {/* Active Order Banner */}
       {activeOrder && (
@@ -496,20 +500,22 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Floating Cart Button (Mobile) */}
-      {cartItemCount > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 md:hidden z-50">
-          <Button
-            className="w-full bg-gradient-to-r from-violet-500 to-purple-600 shadow-xl"
-            size="lg"
-            onClick={() => setCartOpen(true)}
-          >
-            <ShoppingCart className="w-5 h-5 mr-2" />
-            View Cart ({cartItemCount}) • ₹{cartGrandTotal.toFixed(2)}
-            <ChevronRight className="w-5 h-5 ml-2" />
-          </Button>
-        </div>
-      )}
+     {/* Floating Cart Button (Mobile) - Always visible */}
+      <div className="fixed bottom-4 left-4 right-4 md:hidden z-50">
+        <Button
+          className="w-full bg-gradient-to-r from-violet-500 to-purple-600 shadow-xl"
+          size="lg"
+          onClick={() => setCartOpen(true)}
+        >
+          <ShoppingCart className="w-5 h-5 mr-2" />
+          {cartItemCount > 0 ? (
+            <>View Cart ({cartItemCount}) • ₹{cartGrandTotal.toFixed(2)}</>
+          ) : (
+            <>Your Cart is Empty</>
+          )}
+          <ChevronRight className="w-5 h-5 ml-2" />
+        </Button>
+      </div>
     </div>
   );
 };
