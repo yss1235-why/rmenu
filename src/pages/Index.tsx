@@ -222,7 +222,7 @@ const Index = () => {
 
       {/* Active Order Banner */}
       {activeOrder && (
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-3">
+        <div className="bg-gradient-to-r from-success to-success/80 text-success-foreground px-4 py-3">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
@@ -238,7 +238,7 @@ const Index = () => {
       )}
 
       {/* Category Nav */}
-      <nav className="sticky top-[73px] z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
+      <nav className="sticky top-[73px] z-30 bg-card/80 backdrop-blur-xl border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollArea className="w-full">
             <div className="flex gap-2 py-3">
@@ -246,7 +246,7 @@ const Index = () => {
                 variant={selectedCategory === 'all' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setSelectedCategory('all')}
-                className={selectedCategory === 'all' ? 'bg-gradient-to-r from-violet-500 to-purple-600' : ''}
+                className={selectedCategory === 'all' ? 'bg-primary' : ''}
               >
                 All
               </Button>
@@ -256,7 +256,7 @@ const Index = () => {
                   variant={selectedCategory === category.id ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setSelectedCategory(category.id)}
-                  className={selectedCategory === category.id ? 'bg-gradient-to-r from-violet-500 to-purple-600' : ''}
+                  className={selectedCategory === category.id ? 'bg-primary' : ''}
                 >
                   {category.name}
                 </Button>
@@ -272,7 +272,7 @@ const Index = () => {
         {selectedCategory === 'all' && specialItems.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center gap-2 mb-4">
-              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+              <Star className="w-5 h-5 text-warning fill-warning" />
               <h2 className="text-xl font-serif font-semibold">Today's Specials</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -328,7 +328,7 @@ const Index = () => {
                 <DialogTitle className="flex items-center gap-2">
                   {selectedItem.name}
                   {selectedItem.isSpecial && (
-                    <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                    <Star className="w-5 h-5 text-warning fill-warning" />
                   )}
                 </DialogTitle>
                 <DialogDescription>{selectedItem.description}</DialogDescription>
@@ -368,9 +368,9 @@ const Index = () => {
       {cartItemCount > 0 && (
         <Sheet open={cartOpen} onOpenChange={setCartOpen}>
           <SheetTrigger asChild>
-            <button className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
+            <button className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-primary text-primary-foreground rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
               <ShoppingCart className="w-6 h-6" />
-              <Badge className="absolute -top-1 -right-1 h-6 w-6 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
+              <Badge className="absolute -top-1 -right-1 h-6 w-6 rounded-full p-0 flex items-center justify-center bg-destructive text-destructive-foreground text-xs font-bold border-2 border-card">
                 {cartItemCount}
               </Badge>
             </button>
@@ -451,14 +451,14 @@ const Index = () => {
                 </div>
                 <div className="flex justify-between font-bold text-lg pt-2">
                   <span>Total</span>
-                  <span className="text-violet-600">₹{cartGrandTotal.toFixed(2)}</span>
+                  <span className="text-primary">₹{cartGrandTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>
 
             <SheetFooter className="pt-4">
               <Button
-                className="w-full bg-gradient-to-r from-violet-500 to-purple-600"
+                className="w-full bg-primary hover:bg-primary/90"
                 size="lg"
                 onClick={handlePlaceOrder}
                 disabled={isOrdering || !tableNumber}
