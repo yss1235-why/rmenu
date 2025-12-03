@@ -1,21 +1,17 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { 
+  QrCode, 
+  Download, 
   Copy, 
-  Check,
-  Download,
   ExternalLink,
-  Link2,
-  Printer,
-  QrCode,
-  Share2,
-  FileText
+  RefreshCw,
+  AlertCircle,
+  Printer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -23,432 +19,278 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Table, TableLink, generateTableLink } from '@/types/table';
+import { useTables } from '@/hooks/useTables';
 import { useToast } from '@/hooks/use-toast';
+import { TableLink } from '@/types/table';
 
-// Demo tables
-const demoTables: Table[] = Array.from({ length: 12 }, (_, i) => ({
-  id: `table-${i + 1}`,
-  restaurantId: 'demo',
-  tableNumber: (i + 1).toString(),
-  displayName: `Table ${i + 1}`,
-  capacity: i < 6 ? 2 : i < 10 ? 4 : 6,
-  status: 'available' as const,
-  section: i < 6 ? 'Main Hall' : 'Patio',
-  isActive: true,
-  createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-  updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-}));
-
-const restaurantSlug = 'la-maison';
+const RESTAURANT_ID = import.meta.env.VITE_RESTAURANT_ID || 'demo';
+const RESTAURANT_SLUG = import.meta.env.VITE_RESTAURANT_SLUG || 'restaurant';
+const BASE_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
 export const TableLinksPanel = () => {
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [selectedTable, setSelectedTable] = useState<TableLink | null>(null);
-  const [filterSection, setFilterSection] = useState<string>('all');
   const { toast } = useToast();
-  const printRef = useRef<HTMLDivElement>(null);
-
-  const tables = demoTables;
-  const sections = [...new Set(tables.map((t) => t.section).filter(Boolean))] as string[];
-
-  // Generate links for all tables
-  const tableLinks: TableLink[] = tables.map((table) => 
-    generateTableLink(table, restaurantSlug, window.location.origin)
-  );
-
-  const filteredLinks = tableLinks.filter((link) => {
-    if (filterSection === 'all') return true;
-    const table = tables.find((t) => t.id === link.tableId);
-    return table?.section === filterSection;
+  const { tables, loading, error, generateTableLinks } = useTables({ 
+    restaurantId: RESTAURANT_ID,
+    restaurantSlug: RESTAURANT_SLUG 
   });
 
-  const copyToClipboard = async (link: TableLink) => {
+  const [selectedTable, setSelectedTable] = useState<TableLink | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Generate links for all tables
+  const tableLinks = generateTableLinks();
+
+  // Filter based on search
+  const filteredLinks = tableLinks.filter(link =>
+    link.tableNumber.includes(searchQuery) ||
+    link.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const copyToClipboard = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(link.menuUrl);
-      setCopiedId(link.tableId);
+      await navigator.clipboard.writeText(text);
       toast({
-        title: 'Link copied!',
-        description: `Table ${link.tableNumber} menu link copied to clipboard`,
+        title: 'Copied!',
+        description: 'Link copied to clipboard.',
       });
-      setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       toast({
-        title: 'Failed to copy',
-        description: 'Please try again or copy manually',
         variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to copy to clipboard.',
       });
     }
   };
 
-  const copyAllLinks = async () => {
-    const allLinks = filteredLinks
-      .map((link) => `Table ${link.tableNumber}: ${link.menuUrl}`)
-      .join('\n');
+  const downloadQRCode = (tableLink: TableLink) => {
+    // Generate QR code URL using a free QR code API
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(tableLink.fullUrl)}`;
     
-    try {
-      await navigator.clipboard.writeText(allLinks);
-      toast({
-        title: 'All links copied!',
-        description: `${filteredLinks.length} table links copied to clipboard`,
-      });
-    } catch (err) {
-      toast({
-        title: 'Failed to copy',
-        description: 'Please try again',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const downloadLinksAsText = () => {
-    const content = filteredLinks
-      .map((link) => `Table ${link.tableNumber}\n${link.displayName || ''}\n${link.menuUrl}\n`)
-      .join('\n---\n');
-    
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `table-links-${restaurantSlug}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Create download link
+    const link = document.createElement('a');
+    link.href = qrUrl;
+    link.download = `table-${tableLink.tableNumber}-qr.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
     toast({
-      title: 'Downloaded!',
-      description: 'Table links saved to file',
+      title: 'Downloading...',
+      description: `QR code for Table ${tableLink.tableNumber} is downloading.`,
     });
   };
 
-  const downloadLinksAsCSV = () => {
-    const header = 'Table Number,Display Name,Menu URL\n';
-    const rows = filteredLinks
-      .map((link) => `"${link.tableNumber}","${link.displayName || ''}","${link.menuUrl}"`)
-      .join('\n');
-    
-    const content = header + rows;
-    const blob = new Blob([content], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `table-links-${restaurantSlug}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadAllQRCodes = () => {
+    // For each table, trigger download
+    tableLinks.forEach((link, index) => {
+      setTimeout(() => {
+        downloadQRCode(link);
+      }, index * 500); // Stagger downloads
+    });
 
     toast({
-      title: 'Downloaded!',
-      description: 'Table links saved as CSV',
+      title: 'Downloading All',
+      description: `${tableLinks.length} QR codes are being downloaded.`,
     });
   };
 
-  const printLinks = () => {
-    const printContent = filteredLinks.map((link) => `
-      <div style="page-break-inside: avoid; margin-bottom: 24px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px;">
-        <h3 style="font-size: 24px; font-weight: bold; margin: 0 0 8px 0;">Table ${link.tableNumber}</h3>
-        ${link.displayName ? `<p style="color: #64748b; margin: 0 0 12px 0;">${link.displayName}</p>` : ''}
-        <p style="font-family: monospace; font-size: 12px; word-break: break-all; background: #f1f5f9; padding: 8px; border-radius: 4px;">
-          ${link.menuUrl}
-        </p>
-        <p style="margin: 12px 0 0 0; font-size: 12px; color: #64748b;">
-          Scan to view menu or visit the link above
-        </p>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="w-8 h-8 animate-spin text-violet-500" />
+        <span className="ml-2 text-slate-500">Loading table links...</span>
       </div>
-    `).join('');
+    );
+  }
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Table Links - ${restaurantSlug}</title>
-            <style>
-              body { font-family: system-ui, sans-serif; padding: 24px; }
-              h1 { margin-bottom: 24px; }
-              @media print {
-                body { padding: 0; }
-              }
-            </style>
-          </head>
-          <body>
-            <h1>Table Links</h1>
-            ${printContent}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
-  };
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+        <p className="text-red-600">Failed to load tables</p>
+        <p className="text-sm text-slate-500">{error.message}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-2xl font-bold text-slate-900 dark:text-white">Table Links</h2>
-          <p className="text-slate-500 dark:text-slate-400">
-            Generate and manage menu links for each table. Share these links or create QR codes.
+          <h2 className="text-lg font-semibold">Table QR Links</h2>
+          <p className="text-sm text-slate-500">
+            Generate and download QR codes for each table
           </p>
         </div>
+        {tableLinks.length > 0 && (
+          <Button onClick={downloadAllQRCodes} variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Download All QR Codes
+          </Button>
+        )}
       </div>
 
-      {/* Actions Bar */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <Label className="text-xs text-slate-500 mb-1.5 block">Base URL</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={`${window.location.origin}/r/${restaurantSlug}/table/`}
-                  readOnly
-                  className="font-mono text-sm bg-slate-50 dark:bg-slate-800"
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={copyAllLinks}>
-                <Copy className="w-4 h-4 mr-2" />
-                Copy All
-              </Button>
-              <Button variant="outline" size="sm" onClick={downloadLinksAsText}>
-                <FileText className="w-4 h-4 mr-2" />
-                TXT
-              </Button>
-              <Button variant="outline" size="sm" onClick={downloadLinksAsCSV}>
-                <Download className="w-4 h-4 mr-2" />
-                CSV
-              </Button>
-              <Button variant="outline" size="sm" onClick={printLinks}>
-                <Printer className="w-4 h-4 mr-2" />
-                Print
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Search */}
+      <Input
+        placeholder="Search tables..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="max-w-md"
+      />
 
-      {/* Section Filter */}
-      {sections.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          <Button
-            variant={filterSection === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilterSection('all')}
-            className={filterSection === 'all' ? 'bg-gradient-to-r from-violet-500 to-purple-600' : ''}
-          >
-            All Tables
-          </Button>
-          {sections.map((section) => (
-            <Button
-              key={section}
-              variant={filterSection === section ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilterSection(section)}
-              className={filterSection === section ? 'bg-gradient-to-r from-violet-500 to-purple-600' : ''}
-            >
-              {section}
-            </Button>
-          ))}
+      {/* Table Links Grid */}
+      {filteredLinks.length === 0 ? (
+        <div className="text-center py-12">
+          <QrCode className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+          <h3 className="text-lg font-semibold text-slate-600">No Tables</h3>
+          <p className="text-slate-500">Create tables first to generate QR codes.</p>
         </div>
-      )}
-
-      {/* Links Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredLinks.map((link) => {
-          const table = tables.find((t) => t.id === link.tableId);
-          const isCopied = copiedId === link.tableId;
-
-          return (
-            <Card 
-              key={link.tableId} 
-              className="group hover:shadow-lg transition-all duration-200 hover:border-violet-200 dark:hover:border-violet-800"
-            >
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredLinks.map((link) => (
+            <Card key={link.tableId} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-violet-500/25">
-                      #{link.tableNumber}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Table {link.tableNumber}</h3>
-                      {link.displayName && (
-                        <p className="text-xs text-slate-500">{link.displayName}</p>
-                      )}
-                    </div>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="font-semibold">{link.displayName}</h3>
+                    <p className="text-xs text-slate-500">Table #{link.tableNumber}</p>
                   </div>
-                  {table?.section && (
-                    <Badge variant="outline" className="text-xs">
-                      {table.section}
-                    </Badge>
-                  )}
+                  <Badge variant="outline" className="bg-violet-50 text-violet-700">
+                    <QrCode className="w-3 h-3 mr-1" />
+                    QR Ready
+                  </Badge>
                 </div>
 
-                <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg mb-3">
-                  <p className="font-mono text-xs text-slate-600 dark:text-slate-400 truncate">
-                    {link.menuUrl}
+                {/* QR Code Preview */}
+                <div className="bg-white rounded-lg p-4 mb-3 flex items-center justify-center">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link.fullUrl)}`}
+                    alt={`QR Code for Table ${link.tableNumber}`}
+                    className="w-32 h-32"
+                  />
+                </div>
+
+                {/* URL Preview */}
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2 mb-3">
+                  <p className="text-xs text-slate-500 truncate font-mono">
+                    {link.fullUrl}
                   </p>
                 </div>
 
+                {/* Actions */}
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => copyToClipboard(link)}
+                    onClick={() => copyToClipboard(link.fullUrl)}
                   >
-                    {isCopied ? (
-                      <>
-                        <Check className="w-4 h-4 mr-1 text-emerald-500" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copy
-                      </>
-                    )}
+                    <Copy className="w-4 h-4 mr-1" />
+                    Copy
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
+                    className="flex-1"
+                    onClick={() => downloadQRCode(link)}
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    QR
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0"
                     onClick={() => setSelectedTable(link)}
                   >
-                    <QrCode className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                  >
-                    <a href={link.menuUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+                    <ExternalLink className="w-4 h-4" />
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* QR Code Dialog */}
+      {/* Table Detail Dialog */}
       <Dialog open={!!selectedTable} onOpenChange={() => setSelectedTable(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Table {selectedTable?.tableNumber} QR Code</DialogTitle>
+            <DialogTitle>{selectedTable?.displayName}</DialogTitle>
             <DialogDescription>
-              Scan this QR code to access the menu for Table {selectedTable?.tableNumber}
+              Table #{selectedTable?.tableNumber} QR Code and Link
             </DialogDescription>
           </DialogHeader>
+
           {selectedTable && (
-            <div className="space-y-4">
-              {/* QR Code placeholder - In production, use a QR library like qrcode.react */}
-              <div className="aspect-square bg-white rounded-xl p-4 flex items-center justify-center border-2 border-dashed border-slate-200">
-                <div className="text-center">
-                  <QrCode className="w-24 h-24 mx-auto text-slate-300 mb-4" />
-                  <p className="text-sm text-slate-500">
-                    QR Code Preview
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Install qrcode.react for actual QR codes
-                  </p>
+            <div className="space-y-4 py-4">
+              {/* Large QR Code */}
+              <div className="bg-white rounded-lg p-6 flex items-center justify-center">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(selectedTable.fullUrl)}`}
+                  alt={`QR Code for Table ${selectedTable.tableNumber}`}
+                  className="w-64 h-64"
+                />
+              </div>
+
+              {/* Full URL */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Full URL</label>
+                <div className="flex gap-2">
+                  <Input
+                    value={selectedTable.fullUrl}
+                    readOnly
+                    className="font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => copyToClipboard(selectedTable.fullUrl)}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <p className="font-mono text-xs text-slate-600 dark:text-slate-400 break-all">
-                  {selectedTable.menuUrl}
-                </p>
-              </div>
-
-              <div className="flex gap-2">
+              {/* Actions */}
+              <div className="flex gap-2 pt-4">
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => copyToClipboard(selectedTable)}
+                  onClick={() => downloadQRCode(selectedTable)}
                 >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy Link
+                  <Download className="w-4 h-4 mr-2" />
+                  Download QR
                 </Button>
                 <Button
                   className="flex-1 bg-gradient-to-r from-violet-500 to-purple-600"
-                  onClick={() => {
-                    // Download QR code as image
-                    toast({
-                      title: 'Coming soon',
-                      description: 'QR code download will be available when qrcode.react is installed',
-                    });
-                  }}
+                  onClick={() => window.open(selectedTable.fullUrl, '_blank')}
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open Link
                 </Button>
-              </div>
-
-              <Separator />
-
-              <div className="text-center">
-                <p className="text-sm text-slate-500 mb-2">Quick Share</p>
-                <div className="flex justify-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => {
-                      window.open(`https://wa.me/?text=${encodeURIComponent(`Table ${selectedTable.tableNumber} Menu: ${selectedTable.menuUrl}`)}`, '_blank');
-                    }}
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    asChild
-                  >
-                    <a href={selectedTable.menuUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </Button>
-                </div>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Instructions Card */}
-      <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200/50 dark:border-violet-800/50">
+      {/* Usage Instructions */}
+      <Card className="bg-slate-50 dark:bg-slate-900/50">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Link2 className="w-5 h-5 text-violet-500" />
-            How to Use Table Links
+            <Printer className="w-5 h-5" />
+            How to Use
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-          <p>
-            <strong>1. Copy the link</strong> - Each table has a unique URL that customers can visit to see the menu.
-          </p>
-          <p>
-            <strong>2. Create QR codes</strong> - Generate QR codes that link directly to each table's menu.
-          </p>
-          <p>
-            <strong>3. Print and display</strong> - Place QR codes on each table for easy customer access.
-          </p>
-          <p>
-            <strong>4. Track orders</strong> - When customers order from these links, the order will automatically be associated with their table.
-          </p>
+        <CardContent>
+          <ol className="space-y-2 text-sm text-slate-600 dark:text-slate-400 list-decimal list-inside">
+            <li>Download the QR code for each table</li>
+            <li>Print the QR codes on table tents, stickers, or menus</li>
+            <li>Place them on the corresponding tables</li>
+            <li>Customers can scan to view the menu and place orders</li>
+          </ol>
         </CardContent>
       </Card>
     </div>
