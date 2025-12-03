@@ -8,7 +8,8 @@ import {
   AlertCircle,
   Trash2,
   Edit2,
-  RefreshCw
+  RefreshCw,
+  QrCode
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +40,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableStatus } from '@/types/table';
+import { useTables } from '@/hooks/useTables';
+import { useToast } from '@/hooks/use-toast';
+
+const RESTAURANT_ID = import.meta.env.VITE_RESTAURANT_ID || 'demo';
 
 const statusConfig: Record<TableStatus, { label: string; color: string; bgColor: string; icon: typeof CheckCircle }> = {
   available: { 
@@ -67,22 +72,19 @@ const statusConfig: Record<TableStatus, { label: string; color: string; bgColor:
   },
 };
 
-// Demo tables
-const demoTables: Table[] = Array.from({ length: 12 }, (_, i) => ({
-  id: `table-${i + 1}`,
-  restaurantId: 'demo',
-  tableNumber: (i + 1).toString(),
-  displayName: `Table ${i + 1}`,
-  capacity: i < 6 ? 2 : i < 10 ? 4 : 6,
-  status: ['available', 'occupied', 'available', 'reserved', 'cleaning', 'available'][i % 6] as TableStatus,
-  section: i < 6 ? 'Main Hall' : 'Patio',
-  isActive: true,
-  createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-  updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-}));
-
 export const TablesPanel = () => {
-  const [tables, setTables] = useState<Table[]>(demoTables);
+  const { toast } = useToast();
+  const { 
+    tables, 
+    loading, 
+    error, 
+    createTable, 
+    updateStatus, 
+    deleteTable,
+    bulkCreateTables,
+    sections 
+  } = useTables({ restaurantId: RESTAURANT_ID });
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
@@ -103,68 +105,90 @@ export const TablesPanel = () => {
     section: '',
   });
 
-  const sections = [...new Set(tables.map((t) => t.section).filter(Boolean))] as string[];
-
   const filteredTables = tables.filter((table) => {
     if (filterSection === 'all') return true;
     return table.section === filterSection;
   });
 
-  const updateTableStatus = (tableId: string, status: TableStatus) => {
-    setTables((prev) =>
-      prev.map((table) =>
-        table.id === tableId ? { ...table, status } : table
-      )
-    );
+  const handleAddTable = async () => {
+    try {
+      await createTable({
+        tableNumber: newTable.tableNumber,
+        displayName: newTable.displayName || `Table ${newTable.tableNumber}`,
+        capacity: parseInt(newTable.capacity),
+        section: newTable.section || undefined,
+      });
+      
+      setNewTable({ tableNumber: '', displayName: '', capacity: '4', section: '' });
+      setIsAddDialogOpen(false);
+      
+      toast({
+        title: 'Table Created',
+        description: `Table ${newTable.tableNumber} has been added.`,
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to create table.',
+      });
+    }
   };
 
-  const handleAddTable = () => {
-    const table: Table = {
-      id: `table-${Date.now()}`,
-      restaurantId: 'demo',
-      tableNumber: newTable.tableNumber,
-      displayName: newTable.displayName || `Table ${newTable.tableNumber}`,
-      capacity: parseInt(newTable.capacity),
-      status: 'available',
-      section: newTable.section || undefined,
-      isActive: true,
-      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-      updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-    };
-
-    setTables((prev) => [...prev, table].sort((a, b) => parseInt(a.tableNumber) - parseInt(b.tableNumber)));
-    setNewTable({ tableNumber: '', displayName: '', capacity: '4', section: '' });
-    setIsAddDialogOpen(false);
-  };
-
-  const handleBulkCreate = () => {
+  const handleBulkCreate = async () => {
     const start = parseInt(bulkForm.startNumber);
     const end = parseInt(bulkForm.endNumber);
     const capacity = parseInt(bulkForm.capacity);
 
-    const newTables: Table[] = [];
-    for (let i = start; i <= end; i++) {
-      newTables.push({
-        id: `table-${Date.now()}-${i}`,
-        restaurantId: 'demo',
-        tableNumber: i.toString(),
-        displayName: `Table ${i}`,
-        capacity,
-        status: 'available',
-        section: bulkForm.section || undefined,
-        isActive: true,
-        createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-        updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
+    try {
+      await bulkCreateTables(start, end, capacity, bulkForm.section || undefined);
+      
+      setBulkForm({ startNumber: '', endNumber: '', capacity: '4', section: '' });
+      setBulkDialogOpen(false);
+      
+      toast({
+        title: 'Tables Created',
+        description: `Created tables ${start} to ${end}.`,
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to create tables.',
       });
     }
-
-    setTables((prev) => [...prev, ...newTables].sort((a, b) => parseInt(a.tableNumber) - parseInt(b.tableNumber)));
-    setBulkForm({ startNumber: '', endNumber: '', capacity: '4', section: '' });
-    setBulkDialogOpen(false);
   };
 
-  const handleDeleteTable = (tableId: string) => {
-    setTables((prev) => prev.filter((t) => t.id !== tableId));
+  const handleUpdateStatus = async (tableId: string, status: TableStatus) => {
+    try {
+      await updateStatus(tableId, status);
+      toast({
+        title: 'Status Updated',
+        description: `Table status changed to ${statusConfig[status].label}.`,
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update table status.',
+      });
+    }
+  };
+
+  const handleDeleteTable = async (tableId: string) => {
+    try {
+      await deleteTable(tableId);
+      toast({
+        title: 'Table Deleted',
+        description: 'Table has been removed.',
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete table.',
+      });
+    }
   };
 
   const stats = {
@@ -174,26 +198,44 @@ export const TablesPanel = () => {
     reserved: tables.filter((t) => t.status === 'reserved').length,
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="w-8 h-8 animate-spin text-violet-500" />
+        <span className="ml-2 text-slate-500">Loading tables...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+        <p className="text-red-600">Failed to load tables</p>
+        <p className="text-sm text-slate-500">{error.message}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-2xl font-bold text-slate-900 dark:text-white">Tables</h2>
-          <p className="text-slate-500 dark:text-slate-400">Manage restaurant tables and their status</p>
-        </div>
+      {/* Header Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold">Table Management</h2>
         <div className="flex gap-2">
           <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Plus className="w-4 h-4 mr-2" />
-                Bulk Add
+                Bulk Create
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Bulk Add Tables</DialogTitle>
-                <DialogDescription>Create multiple tables at once</DialogDescription>
+                <DialogTitle>Bulk Create Tables</DialogTitle>
+                <DialogDescription>
+                  Create multiple tables at once by specifying a range.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -219,32 +261,39 @@ export const TablesPanel = () => {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="bulkCapacity">Capacity</Label>
-                  <Select value={bulkForm.capacity} onValueChange={(v) => setBulkForm({ ...bulkForm, capacity: v })}>
+                  <Label htmlFor="bulkCapacity">Capacity (seats)</Label>
+                  <Select 
+                    value={bulkForm.capacity} 
+                    onValueChange={(v) => setBulkForm({ ...bulkForm, capacity: v })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="2">2 people</SelectItem>
-                      <SelectItem value="4">4 people</SelectItem>
-                      <SelectItem value="6">6 people</SelectItem>
-                      <SelectItem value="8">8 people</SelectItem>
+                      <SelectItem value="2">2 seats</SelectItem>
+                      <SelectItem value="4">4 seats</SelectItem>
+                      <SelectItem value="6">6 seats</SelectItem>
+                      <SelectItem value="8">8 seats</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="bulkSection">Section (Optional)</Label>
+                  <Label htmlFor="bulkSection">Section (optional)</Label>
                   <Input
                     id="bulkSection"
                     value={bulkForm.section}
                     onChange={(e) => setBulkForm({ ...bulkForm, section: e.target.value })}
-                    placeholder="e.g., Main Hall, Patio"
+                    placeholder="Main Hall, Patio, etc."
                   />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleBulkCreate} className="bg-gradient-to-r from-violet-500 to-purple-600">
+                <Button 
+                  onClick={handleBulkCreate}
+                  disabled={!bulkForm.startNumber || !bulkForm.endNumber}
+                  className="bg-gradient-to-r from-violet-500 to-purple-600"
+                >
                   Create Tables
                 </Button>
               </DialogFooter>
@@ -261,54 +310,63 @@ export const TablesPanel = () => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Table</DialogTitle>
-                <DialogDescription>Create a new table for your restaurant</DialogDescription>
+                <DialogDescription>
+                  Create a new table for your restaurant.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div>
-                  <Label htmlFor="tableNumber">Table Number</Label>
+                  <Label htmlFor="tableNumber">Table Number *</Label>
                   <Input
                     id="tableNumber"
                     value={newTable.tableNumber}
                     onChange={(e) => setNewTable({ ...newTable, tableNumber: e.target.value })}
-                    placeholder="e.g., 1, 2, A1"
+                    placeholder="1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="displayName">Display Name (Optional)</Label>
+                  <Label htmlFor="displayName">Display Name</Label>
                   <Input
                     id="displayName"
                     value={newTable.displayName}
                     onChange={(e) => setNewTable({ ...newTable, displayName: e.target.value })}
-                    placeholder="e.g., Window Seat, VIP Booth"
+                    placeholder="Table 1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="capacity">Capacity</Label>
-                  <Select value={newTable.capacity} onValueChange={(v) => setNewTable({ ...newTable, capacity: v })}>
+                  <Label htmlFor="capacity">Capacity (seats)</Label>
+                  <Select 
+                    value={newTable.capacity} 
+                    onValueChange={(v) => setNewTable({ ...newTable, capacity: v })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="2">2 people</SelectItem>
-                      <SelectItem value="4">4 people</SelectItem>
-                      <SelectItem value="6">6 people</SelectItem>
-                      <SelectItem value="8">8 people</SelectItem>
+                      <SelectItem value="2">2 seats</SelectItem>
+                      <SelectItem value="4">4 seats</SelectItem>
+                      <SelectItem value="6">6 seats</SelectItem>
+                      <SelectItem value="8">8 seats</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="section">Section (Optional)</Label>
+                  <Label htmlFor="section">Section (optional)</Label>
                   <Input
                     id="section"
                     value={newTable.section}
                     onChange={(e) => setNewTable({ ...newTable, section: e.target.value })}
-                    placeholder="e.g., Main Hall, Patio"
+                    placeholder="Main Hall, Patio, etc."
                   />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleAddTable} className="bg-gradient-to-r from-violet-500 to-purple-600">
+                <Button 
+                  onClick={handleAddTable}
+                  disabled={!newTable.tableNumber}
+                  className="bg-gradient-to-r from-violet-500 to-purple-600"
+                >
                   Add Table
                 </Button>
               </DialogFooter>
@@ -371,80 +429,79 @@ export const TablesPanel = () => {
       )}
 
       {/* Tables Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-        {filteredTables.map((table) => {
-          const config = statusConfig[table.status];
-          const StatusIcon = config.icon;
-
-          return (
-            <Card 
-              key={table.id} 
-              className={`relative overflow-hidden transition-all hover:shadow-lg ${config.bgColor}`}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${config.color} bg-white dark:bg-slate-800`}>
-                    <span className="font-bold text-sm">#{table.tableNumber}</span>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => updateTableStatus(table.id, 'available')}>
-                        <CheckCircle className="w-4 h-4 mr-2 text-emerald-500" />
-                        Set Available
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => updateTableStatus(table.id, 'occupied')}>
-                        <Users className="w-4 h-4 mr-2 text-violet-500" />
-                        Set Occupied
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => updateTableStatus(table.id, 'reserved')}>
-                        <Clock className="w-4 h-4 mr-2 text-amber-500" />
-                        Set Reserved
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => updateTableStatus(table.id, 'cleaning')}>
-                        <RefreshCw className="w-4 h-4 mr-2 text-blue-500" />
-                        Set Cleaning
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setEditingTable(table)}>
-                        <Edit2 className="w-4 h-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteTable(table.id)}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm truncate">{table.displayName}</h3>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <Users className="w-3 h-3" />
-                    <span>{table.capacity} people</span>
-                  </div>
-                  <Badge className={`${config.color} ${config.bgColor} border-0`}>
-                    <StatusIcon className="w-3 h-3 mr-1" />
-                    {config.label}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {filteredTables.length === 0 && (
+      {filteredTables.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-slate-500">No tables found. Add your first table!</p>
+          <QrCode className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+          <h3 className="text-lg font-semibold text-slate-600">No Tables</h3>
+          <p className="text-slate-500">Add your first table to get started.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {filteredTables.map((table) => {
+            const config = statusConfig[table.status];
+            const StatusIcon = config.icon;
+
+            return (
+              <Card key={table.id} className="relative hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="absolute top-2 right-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(table.id, 'available')}>
+                          <CheckCircle className="w-4 h-4 mr-2 text-emerald-500" />
+                          Set Available
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(table.id, 'occupied')}>
+                          <Users className="w-4 h-4 mr-2 text-violet-500" />
+                          Set Occupied
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(table.id, 'reserved')}>
+                          <Clock className="w-4 h-4 mr-2 text-amber-500" />
+                          Set Reserved
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(table.id, 'cleaning')}>
+                          <RefreshCw className="w-4 h-4 mr-2 text-blue-500" />
+                          Set Cleaning
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setEditingTable(table)}>
+                          <Edit2 className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteTable(table.id)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm truncate">{table.displayName}</h3>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <Users className="w-3 h-3" />
+                      <span>{table.capacity} people</span>
+                    </div>
+                    <Badge className={`${config.color} ${config.bgColor} border-0`}>
+                      <StatusIcon className="w-3 h-3 mr-1" />
+                      {config.label}
+                    </Badge>
+                    {table.section && (
+                      <p className="text-xs text-slate-400">{table.section}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
