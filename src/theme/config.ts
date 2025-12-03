@@ -31,6 +31,13 @@ export interface ThemeConfig {
       border: string;
       input: string;
       ring: string;
+      // Status colors
+      success: string;
+      successForeground: string;
+      warning: string;
+      warningForeground: string;
+      info: string;
+      infoForeground: string;
     };
     // Dark mode
     dark: {
@@ -51,9 +58,15 @@ export interface ThemeConfig {
       border: string;
       input: string;
       ring: string;
+      // Status colors
+      success: string;
+      successForeground: string;
+      warning: string;
+      warningForeground: string;
+      info: string;
+      infoForeground: string;
     };
   };
-
   // Typography
   typography: {
     fontFamily: {
@@ -145,7 +158,15 @@ export const defaultTheme: ThemeConfig = {
       border: '0 0% 83%',
       input: '0 0% 83%',
       ring: '243 75% 58%',
+      // Status colors
+      success: '142 76% 36%',
+      successForeground: '142 76% 97%',
+      warning: '38 92% 50%',
+      warningForeground: '38 92% 97%',
+      info: '217 91% 60%',
+      infoForeground: '217 91% 97%',
     },
+    dark: {
     dark: {
       primary: '234 89% 73%',
       primaryForeground: '243 47% 20%',
@@ -163,7 +184,14 @@ export const defaultTheme: ThemeConfig = {
       destructiveForeground: '0 85% 97%',
       border: '0 0% 32%',
       input: '0 0% 32%',
-      ring: '234 89% 73%',
+     ring: '234 89% 73%',
+      // Status colors
+      success: '142 71% 45%',
+      successForeground: '142 76% 10%',
+      warning: '38 92% 50%',
+      warningForeground: '38 92% 10%',
+      info: '217 91% 65%',
+      infoForeground: '217 91% 10%',
     },
   },
 
@@ -242,6 +270,13 @@ export const rusticTheme: ThemeConfig = {
       card: '36 33% 97%',
       accent: '142 40% 40%',
       accentForeground: '142 40% 95%',
+      // Rustic-themed status colors
+      success: '142 50% 35%',
+      successForeground: '142 50% 95%',
+      warning: '30 80% 45%',
+      warningForeground: '30 80% 95%',
+      info: '200 60% 45%',
+      infoForeground: '200 60% 95%',
     },
     dark: {
       ...defaultTheme.colors.dark,
@@ -249,6 +284,13 @@ export const rusticTheme: ThemeConfig = {
       primaryForeground: '24 30% 10%',
       background: '24 10% 10%',
       card: '24 10% 15%',
+      // Rustic-themed status colors (dark)
+      success: '142 50% 45%',
+      successForeground: '142 50% 10%',
+      warning: '30 80% 50%',
+      warningForeground: '30 80% 10%',
+      info: '200 60% 55%',
+      infoForeground: '200 60% 10%',
     },
   },
   typography: {
@@ -282,6 +324,13 @@ export const modernMinimalTheme: ThemeConfig = {
       accent: '0 0% 90%',
       accentForeground: '0 0% 9%',
       border: '0 0% 90%',
+      // Minimal monochrome status colors
+      success: '160 10% 40%',
+      successForeground: '160 10% 98%',
+      warning: '40 10% 50%',
+      warningForeground: '40 10% 98%',
+      info: '210 10% 50%',
+      infoForeground: '210 10% 98%',
     },
     dark: {
       ...defaultTheme.colors.dark,
@@ -289,6 +338,13 @@ export const modernMinimalTheme: ThemeConfig = {
       primaryForeground: '0 0% 9%',
       background: '0 0% 5%',
       card: '0 0% 10%',
+      // Minimal monochrome status colors (dark)
+      success: '160 10% 60%',
+      successForeground: '160 10% 10%',
+      warning: '40 10% 60%',
+      warningForeground: '40 10% 10%',
+      info: '210 10% 60%',
+      infoForeground: '210 10% 10%',
     },
   },
   typography: {
