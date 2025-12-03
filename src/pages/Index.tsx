@@ -211,146 +211,6 @@ const Index = () => {
               )}
             </div>
 
-            {/* Cart Button */}
-            <Sheet open={cartOpen} onOpenChange={setCartOpen}>
-              <SheetTrigger asChild>
-                <Button 
-                  className="relative bg-gradient-to-r from-violet-500 to-purple-600"
-                  size="lg"
-                >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  Cart
-                  {cartItemCount > 0 && (
-                    <Badge 
-                      className="absolute -top-2 -right-2 bg-red-500 text-white border-0"
-                    >
-                      {cartItemCount}
-                    </Badge>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-full sm:max-w-md">
-                <SheetHeader>
-                  <SheetTitle>Your Cart</SheetTitle>
-                  <SheetDescription>
-                    {cart.length === 0 
-                      ? 'Your cart is empty' 
-                      : `${cartItemCount} items in your cart`}
-                  </SheetDescription>
-                </SheetHeader>
-
-                {cart.length > 0 ? (
-                  <>
-                    <ScrollArea className="flex-1 my-4 max-h-[50vh]">
-                      <div className="space-y-4">
-                        {cart.map((item) => (
-                          <div key={item.menuItemId} className="flex items-center gap-3">
-                            {item.image && (
-                              <img 
-                                src={getOptimizedImageUrl(item.image, 'thumbnail')} 
-                                alt={item.name}
-                                className="w-16 h-16 rounded-lg object-cover"
-                              />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium truncate">{item.name}</h4>
-                              <p className="text-sm text-violet-600 font-semibold">
-                                ₹{(item.price * item.quantity).toFixed(2)}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => updateCartQuantity(item.menuItemId, -1)}
-                              >
-                                <Minus className="w-4 h-4" />
-                              </Button>
-                              <span className="w-8 text-center font-medium">{item.quantity}</span>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => updateCartQuantity(item.menuItemId, 1)}
-                              >
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-red-500"
-                                onClick={() => removeFromCart(item.menuItemId)}
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-
-                    <div className="space-y-4">
-                      <Textarea
-                        placeholder="Special instructions or notes..."
-                        value={orderNotes}
-                        onChange={(e) => setOrderNotes(e.target.value)}
-                        rows={2}
-                      />
-
-                      <div className="space-y-2 pt-4 border-t">
-                        <div className="flex justify-between text-sm">
-                          <span>Subtotal</span>
-                          <span>₹{cartTotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
-                          <span>₹{cartTax.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-lg pt-2">
-                          <span>Total</span>
-                          <span className="text-violet-600">₹{cartGrandTotal.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <SheetFooter className="pt-4">
-                      <Button
-                        className="w-full bg-gradient-to-r from-violet-500 to-purple-600"
-                        size="lg"
-                        onClick={handlePlaceOrder}
-                        disabled={isOrdering || !tableNumber}
-                      >
-                        {isOrdering ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                            Placing Order...
-                          </>
-                        ) : (
-                          <>
-                            Place Order • ₹{cartGrandTotal.toFixed(2)}
-                          </>
-                        )}
-                      </Button>
-                    </SheetFooter>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <ShoppingCart className="w-16 h-16 text-slate-300 mb-4" />
-                    <p className="text-slate-500">Your cart is empty</p>
-                    <Button 
-                      variant="link" 
-                      onClick={() => setCartOpen(false)}
-                      className="mt-2"
-                    >
-                      Browse Menu
-                    </Button>
-                  </div>
-                )}
-              </SheetContent>
-            </Sheet>
-       
-
             {/* Login Button */}
             <Link to="/login">
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -505,22 +365,120 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-     {/* Floating Cart Button (Mobile) - Always visible */}
-      <div className="fixed bottom-4 left-4 right-4 md:hidden z-50">
-        <Button
-          className="w-full bg-gradient-to-r from-violet-500 to-purple-600 shadow-xl"
-          size="lg"
-          onClick={() => setCartOpen(true)}
-        >
-          <ShoppingCart className="w-5 h-5 mr-2" />
-          {cartItemCount > 0 ? (
-            <>View Cart ({cartItemCount}) • ₹{cartGrandTotal.toFixed(2)}</>
-          ) : (
-            <>Your Cart is Empty</>
-          )}
-          <ChevronRight className="w-5 h-5 ml-2" />
-        </Button>
-      </div>
+     {/* Floating Cart Button (Bottom Right) - Only shows when cart has items */}
+      {cartItemCount > 0 && (
+        <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+          <SheetTrigger asChild>
+            <button className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
+              <ShoppingCart className="w-6 h-6" />
+              <Badge className="absolute -top-1 -right-1 h-6 w-6 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
+                {cartItemCount}
+              </Badge>
+            </button>
+          </SheetTrigger>
+          <SheetContent className="w-full sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>Your Cart</SheetTitle>
+              <SheetDescription>
+                {cartItemCount} items in your cart
+              </SheetDescription>
+            </SheetHeader>
+
+            <ScrollArea className="flex-1 my-4 max-h-[50vh]">
+              <div className="space-y-4">
+                {cart.map((item) => (
+                  <div key={item.menuItemId} className="flex items-center gap-3">
+                    {item.image && (
+                      <img 
+                        src={getOptimizedImageUrl(item.image, 'thumbnail')} 
+                        alt={item.name}
+                        className="w-16 h-16 rounded-lg object-cover"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium truncate">{item.name}</h4>
+                      <p className="text-sm text-violet-600 font-semibold">
+                        ₹{(item.price * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateCartQuantity(item.menuItemId, -1)}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <span className="w-8 text-center font-medium">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateCartQuantity(item.menuItemId, 1)}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500"
+                        onClick={() => removeFromCart(item.menuItemId)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+
+            <div className="space-y-4">
+              <Textarea
+                placeholder="Special instructions or notes..."
+                value={orderNotes}
+                onChange={(e) => setOrderNotes(e.target.value)}
+                rows={2}
+              />
+
+              <div className="space-y-2 pt-4 border-t">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal</span>
+                  <span>₹{cartTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
+                  <span>₹{cartTax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-lg pt-2">
+                  <span>Total</span>
+                  <span className="text-violet-600">₹{cartGrandTotal.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            <SheetFooter className="pt-4">
+              <Button
+                className="w-full bg-gradient-to-r from-violet-500 to-purple-600"
+                size="lg"
+                onClick={handlePlaceOrder}
+                disabled={isOrdering || !tableNumber}
+              >
+                {isOrdering ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Placing Order...
+                  </>
+                ) : (
+                  <>
+                    Place Order • ₹{cartGrandTotal.toFixed(2)}
+                  </>
+                )}
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 };
