@@ -49,6 +49,7 @@ export const useOrders = ({ restaurantId, realtime = true }: UseOrdersOptions) =
     };
   }, [restaurantId, realtime]);
 
+  // Create order
   const createOrder = useCallback(
     async (
       tableNumber: string,
@@ -69,51 +70,119 @@ export const useOrders = ({ restaurantId, realtime = true }: UseOrdersOptions) =
     [restaurantId]
   );
 
-  const updateStatus = useCallback(async (orderId: string, status: OrderStatus) => {
-    return orderService.updateOrderStatus(orderId, status);
-  }, []);
+  // Update order status
+  const updateOrderStatus = useCallback(
+    async (orderId: string, status: OrderStatus) => {
+      return orderService.updateOrderStatus(orderId, status);
+    },
+    []
+  );
 
-  const cancelOrder = useCallback(async (orderId: string) => {
-    return orderService.cancelOrder(orderId);
-  }, []);
+  // Update payment status
+  const updatePaymentStatus = useCallback(
+    async (orderId: string, paymentStatus: Order['paymentStatus']) => {
+      return orderService.updatePaymentStatus(orderId, paymentStatus);
+    },
+    []
+  );
+
+  // Cancel order
+  const cancelOrder = useCallback(
+    async (orderId: string) => {
+      return orderService.updateOrderStatus(orderId, 'cancelled');
+    },
+    []
+  );
+
+  // Get orders by status
+  const getOrdersByStatus = useCallback(
+    (status: OrderStatus): Order[] => {
+      return orders.filter((order) => order.status === status);
+    },
+    [orders]
+  );
+
+  // Get orders by table
+  const getOrdersByTable = useCallback(
+    (tableNumber: string): Order[] => {
+      return orders.filter((order) => order.tableNumber === tableNumber);
+    },
+    [orders]
+  );
 
   // Filter helpers
   const pendingOrders = orders.filter((o) => o.status === 'pending');
   const preparingOrders = orders.filter((o) => o.status === 'preparing');
   const readyOrders = orders.filter((o) => o.status === 'ready');
+  const completedOrders = orders.filter((o) => o.status === 'completed');
+  const activeOrders = orders.filter((o) => 
+    !['completed', 'cancelled'].includes(o.status)
+  );
 
   return {
     orders,
-    pendingOrders,
-    preparingOrders,
-    readyOrders,
     loading,
     error,
     createOrder,
-    updateStatus,
+    updateOrderStatus,
+    updatePaymentStatus,
     cancelOrder,
+    getOrdersByStatus,
+    getOrdersByTable,
+    pendingOrders,
+    preparingOrders,
+    readyOrders,
+    completedOrders,
+    activeOrders,
   };
 };
 
-// Hook for tracking a single order (customer side)
-export const useOrderTracking = (orderId: string) => {
-  const [order, setOrder] = useState<Order | null>(null);
+// Hook for customer orders (by table)
+export const useTableOrders = (restaurantId: string, tableNumber: string) => {
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!orderId) {
-      setLoading(false);
-      return;
+    let unsubscribe: (() => void) | undefined;
+
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        unsubscribe = orderService.subscribeToTableOrders(
+          restaurantId,
+          tableNumber,
+          (data) => {
+            setOrders(data);
+            setLoading(false);
+          }
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch orders'));
+        setLoading(false);
+      }
+    };
+
+    if (restaurantId && tableNumber) {
+      fetchOrders();
     }
 
-    const unsubscribe = orderService.subscribeToOrder(orderId, (data) => {
-      setOrder(data);
-      setLoading(false);
-    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [restaurantId, tableNumber]);
 
-    return () => unsubscribe();
-  }, [orderId]);
+  // Get active order for this table
+  const activeOrder = orders.find((o) => 
+    !['completed', 'cancelled'].includes(o.status)
+  );
 
-  return { order, loading, error };
+  return {
+    orders,
+    activeOrder,
+    loading,
+    error,
+  };
 };
