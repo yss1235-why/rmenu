@@ -290,8 +290,7 @@ const StaffDashboard = () => {
 
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/50">
-                 <Card className="bg-warning/10 dark:bg-warning/5 border-warning/20 dark:border-warning/10">
+                <Card className="bg-warning/10 dark:bg-warning/5 border-warning/20 dark:border-warning/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
