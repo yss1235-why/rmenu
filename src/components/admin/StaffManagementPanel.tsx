@@ -248,7 +248,7 @@ export const StaffManagementPanel = () => {
             <div className="flex gap-2 mt-4 pt-4 border-t">
               <Button 
                 size="sm" 
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600"
+                className="flex-1 bg-success hover:bg-success/90"
                 onClick={() => handleApprove(member.id, member.name)}
               >
                 <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -257,7 +257,7 @@ export const StaffManagementPanel = () => {
               <Button 
                 size="sm" 
                 variant="outline"
-                className="flex-1 text-red-600 hover:bg-red-50"
+                className="flex-1 text-destructive hover:bg-destructive/10"
                 onClick={() => handleReject(member.id, member.name)}
               >
                 <XCircle className="w-4 h-4 mr-1" />
@@ -273,8 +273,8 @@ export const StaffManagementPanel = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-8 h-8 animate-spin text-violet-500" />
-        <span className="ml-2 text-slate-500">Loading staff...</span>
+        <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Loading staff...</span>
       </div>
     );
   }
@@ -282,9 +282,9 @@ export const StaffManagementPanel = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
-        <p className="text-red-600">Failed to load staff</p>
-        <p className="text-sm text-slate-500">{error.message}</p>
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
+        <p className="text-destructive">Failed to load staff</p>
+        <p className="text-sm text-muted-foreground">{error.message}</p>
       </div>
     );
   }
@@ -296,7 +296,7 @@ export const StaffManagementPanel = () => {
         <h2 className="text-lg font-semibold">Staff Management</h2>
         <Button 
           onClick={() => setIsAddDialogOpen(true)}
-          className="bg-gradient-to-r from-violet-500 to-purple-600"
+          className="bg-primary hover:bg-primary/90"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Staff
@@ -305,10 +305,10 @@ export const StaffManagementPanel = () => {
 
       {/* Pending Approvals */}
       {pendingStaff.length > 0 && (
-        <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30">
+        <Card className="bg-gradient-to-r from-warning/10 to-warning/5 dark:from-warning/10 dark:to-warning/5">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-600" />
+             <Clock className="w-5 h-5 text-warning" />
               Pending Approvals
               <Badge variant="secondary" className="ml-2">{pendingStaff.length}</Badge>
             </CardTitle>
@@ -345,34 +345,34 @@ export const StaffManagementPanel = () => {
             <p className="text-2xl font-bold">{approvedStaff.length}</p>
           </CardContent>
         </Card>
-        <Card className="bg-purple-50 dark:bg-purple-950/30 border-purple-200/50">
+       <Card className="bg-primary/10 dark:bg-primary/5 border-primary/20">
           <CardContent className="p-4">
-            <p className="text-sm text-purple-600 dark:text-purple-400">Admins</p>
-            <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+            <p className="text-sm text-primary">Admins</p>
+            <p className="text-2xl font-bold text-primary">
               {approvedStaff.filter((s) => s.role === 'admin').length}
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200/50">
+        <Card className="bg-info/10 dark:bg-info/5 border-info/20">
           <CardContent className="p-4">
-            <p className="text-sm text-blue-600 dark:text-blue-400">Managers</p>
-            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+            <p className="text-sm text-info">Managers</p>
+            <p className="text-2xl font-bold text-info">
               {approvedStaff.filter((s) => s.role === 'manager').length}
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-orange-50 dark:bg-orange-950/30 border-orange-200/50">
+        <Card className="bg-warning/10 dark:bg-warning/5 border-warning/20">
           <CardContent className="p-4">
-            <p className="text-sm text-orange-600 dark:text-orange-400">Kitchen</p>
-            <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+            <p className="text-sm text-warning">Kitchen</p>
+            <p className="text-2xl font-bold text-warning">
               {approvedStaff.filter((s) => s.role === 'kitchen').length}
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-green-50 dark:bg-green-950/30 border-green-200/50">
+       <Card className="bg-success/10 dark:bg-success/5 border-success/20">
           <CardContent className="p-4">
-            <p className="text-sm text-green-600 dark:text-green-400">Waiters</p>
-            <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+            <p className="text-sm text-success">Waiters</p>
+            <p className="text-2xl font-bold text-success">
               {approvedStaff.filter((s) => s.role === 'waiter').length}
             </p>
           </CardContent>
@@ -382,14 +382,14 @@ export const StaffManagementPanel = () => {
       {/* Approved Staff Grid */}
       <div>
         <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+          <CheckCircle2 className="w-5 h-5 text-success" />
           Active Staff
         </h3>
         {filteredApprovedStaff.length === 0 ? (
           <div className="text-center py-12">
-            <Users className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-            <h3 className="text-lg font-semibold text-slate-600">No Staff Members</h3>
-            <p className="text-slate-500">Add your first staff member to get started.</p>
+            <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+            <h3 className="text-lg font-semibold text-muted-foreground">No Staff Members</h3>
+            <p className="text-muted-foreground">Add your first staff member to get started.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -486,7 +486,7 @@ export const StaffManagementPanel = () => {
                   <Button
                     key={role}
                     variant={isSelected ? 'default' : 'outline'}
-                    className={isSelected ? 'bg-gradient-to-r from-violet-500 to-purple-600' : ''}
+                    className={isSelected ? 'bg-primary' : ''}
                     onClick={() => handleRoleChange(role)}
                   >
                     <RoleIcon className="w-4 h-4 mr-2" />
