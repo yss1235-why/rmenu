@@ -210,10 +210,10 @@ const Index = () => {
               )}
             </div>
 
-            {/* Login Button */}
+           {/* Login Button */}
             <Link to="/login">
               <Button variant="ghost" size="icon" className="rounded-full">
-                <LogIn className="w-5 h-5" />
+                <LogIn className="w-5 h-5 text-slate-700" />
               </Button>
             </Link>
           </div>
