@@ -405,7 +405,8 @@ const StaffDashboard = () => {
                         <p className="text-sm">Orders will appear here</p>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">Completed Orders</span>
                           <span className="font-semibold text-success">{stats.completedToday}</span>
                         </div>
