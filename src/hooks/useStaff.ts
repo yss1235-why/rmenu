@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { staffService } from '@/services/staffService';
-import { Staff, StaffRole, hasPermission, RolePermissions } from '@/types/staff';
+import { Staff, StaffRole, RolePermissions, hasPermission } from '@/types/staff';
 
 interface UseStaffOptions {
   restaurantId: string;
@@ -8,7 +8,7 @@ interface UseStaffOptions {
 }
 
 export const useStaff = ({ restaurantId, realtime = true }: UseStaffOptions) => {
-  const [staff, setStaff] = useState<Staff[]>([]);
+  const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -22,12 +22,12 @@ export const useStaff = ({ restaurantId, realtime = true }: UseStaffOptions) => 
 
         if (realtime) {
           unsubscribe = staffService.subscribeToStaff(restaurantId, (data) => {
-            setStaff(data);
+            setStaffMembers(data);
             setLoading(false);
           });
         } else {
-          const data = await staffService.getStaff(restaurantId);
-          setStaff(data);
+          const data = await staffService.getRestaurantStaff(restaurantId);
+          setStaffMembers(data);
           setLoading(false);
         }
       } catch (err) {
@@ -45,74 +45,82 @@ export const useStaff = ({ restaurantId, realtime = true }: UseStaffOptions) => 
     };
   }, [restaurantId, realtime]);
 
-  // Create staff member
-  const createStaff = useCallback(
-    async (data: Omit<Staff, 'id' | 'createdAt' | 'updatedAt' | 'restaurantId'>) => {
+  // Add staff member
+  const addStaff = useCallback(
+    async (data: { name: string; email: string; role: StaffRole }) => {
       return staffService.createStaff({
-        ...data,
         restaurantId,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        isActive: true,
+        isApproved: true, // Auto-approve when added by admin
       });
     },
     [restaurantId]
   );
 
-  // Update staff
-  const updateStaff = useCallback(async (staffId: string, data: Partial<Staff>) => {
-    return staffService.updateStaff(staffId, data);
-  }, []);
+  // Update staff role
+  const updateStaffRole = useCallback(
+    async (staffId: string, role: StaffRole) => {
+      return staffService.updateStaff(staffId, { role });
+    },
+    []
+  );
 
-  // Approve staff
-  const approveStaff = useCallback(async (staffId: string, approvedBy: string) => {
-    return staffService.approveStaff(staffId, approvedBy);
-  }, []);
+  // Approve staff member
+  const approveStaff = useCallback(
+    async (staffId: string) => {
+      return staffService.approveStaff(staffId);
+    },
+    []
+  );
 
-  // Deactivate staff
-  const deactivateStaff = useCallback(async (staffId: string) => {
-    return staffService.deactivateStaff(staffId);
-  }, []);
+  // Deactivate staff member
+  const deactivateStaff = useCallback(
+    async (staffId: string) => {
+      return staffService.updateStaff(staffId, { isActive: false });
+    },
+    []
+  );
 
-  // Change role
-  const changeRole = useCallback(async (staffId: string, newRole: StaffRole) => {
-    return staffService.changeStaffRole(staffId, newRole);
-  }, []);
-
-  // Filter helpers
-  const approvedStaff = staff.filter((s) => s.isApproved);
-  const pendingStaff = staff.filter((s) => !s.isApproved);
-  const admins = staff.filter((s) => s.role === 'admin' && s.isApproved);
-  const managers = staff.filter((s) => s.role === 'manager' && s.isApproved);
-  const kitchenStaff = staff.filter((s) => s.role === 'kitchen' && s.isApproved);
-  const waiters = staff.filter((s) => s.role === 'waiter' && s.isApproved);
+  // Delete staff member
+  const deleteStaff = useCallback(
+    async (staffId: string) => {
+      return staffService.deleteStaff(staffId);
+    },
+    []
+  );
 
   // Get staff by role
   const getStaffByRole = useCallback(
     (role: StaffRole): Staff[] => {
-      return staff.filter((s) => s.role === role && s.isApproved);
+      return staffMembers.filter((s) => s.role === role && s.isActive && s.isApproved);
     },
-    [staff]
+    [staffMembers]
   );
 
+  // Filter helpers
+  const activeStaff = staffMembers.filter((s) => s.isActive && s.isApproved);
+  const pendingStaff = staffMembers.filter((s) => s.isActive && !s.isApproved);
+
   return {
-    staff,
+    staffMembers,
+    activeStaff,
+    pendingStaff,
     loading,
     error,
-    createStaff,
-    updateStaff,
+    addStaff,
+    updateStaffRole,
     approveStaff,
     deactivateStaff,
-    changeRole,
+    deleteStaff,
     getStaffByRole,
-    approvedStaff,
-    pendingStaff,
-    admins,
-    managers,
-    kitchenStaff,
-    waiters,
   };
 };
 
-// Hook for current user's permissions
-export const usePermissions = (role: StaffRole | null) => {
+// Hook for checking staff permissions
+export const useStaffPermissions = (role: StaffRole | null) => {
   const checkPermission = useCallback(
     (permission: keyof RolePermissions): boolean => {
       if (!role) return false;
@@ -121,7 +129,7 @@ export const usePermissions = (role: StaffRole | null) => {
     [role]
   );
 
-  const permissions = role
+  const permissions: RolePermissions | null = role
     ? {
         canManageMenu: hasPermission(role, 'canManageMenu'),
         canManageOrders: hasPermission(role, 'canManageOrders'),
@@ -135,65 +143,4 @@ export const usePermissions = (role: StaffRole | null) => {
     : null;
 
   return { checkPermission, permissions };
-};
-
-// Demo staff for development
-export const useDemoStaff = (): Staff[] => {
-  return [
-    {
-      id: 'staff-1',
-      restaurantId: 'demo',
-      email: 'admin@restaurant.com',
-      name: 'John Admin',
-      role: 'admin',
-      isActive: true,
-      isApproved: true,
-      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-      updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-    },
-    {
-      id: 'staff-2',
-      restaurantId: 'demo',
-      email: 'manager@restaurant.com',
-      name: 'Sarah Manager',
-      role: 'manager',
-      isActive: true,
-      isApproved: true,
-      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-      updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-    },
-    {
-      id: 'staff-3',
-      restaurantId: 'demo',
-      email: 'chef@restaurant.com',
-      name: 'Mike Chef',
-      role: 'kitchen',
-      isActive: true,
-      isApproved: true,
-      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-      updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-    },
-    {
-      id: 'staff-4',
-      restaurantId: 'demo',
-      email: 'waiter@restaurant.com',
-      name: 'Emma Waiter',
-      role: 'waiter',
-      isActive: true,
-      isApproved: true,
-      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-      updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-    },
-    {
-      id: 'staff-5',
-      restaurantId: 'demo',
-      email: 'pending@restaurant.com',
-      name: 'New Staff',
-      role: 'waiter',
-      isActive: true,
-      isApproved: false,
-      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-      updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-    },
-  ];
 };
