@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,12 +7,12 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { defaultTheme } from "@/theme/config";
 import { AuthProvider } from "@/hooks/useAuth";
+import { SplashScreen } from "@/components/SplashScreen";
 import Index from "./pages/Index";
 import Menu from "./pages/Menu";
 import StaffDashboard from "./pages/admin/StaffDashboard";
 import StaffLogin from "./pages/admin/StaffLogin";
 import NotFound from "./pages/NotFound";
-
 // Initialize Firebase
 import { initializeFirebase } from "@/lib/firebase";
 
@@ -25,8 +26,27 @@ try {
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, defaultTheme.splash.duration);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showSplash) {
+    return (
+      <ThemeProvider initialTheme={defaultTheme}>
+        <SplashScreen />
+      </ThemeProvider>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <ThemeProvider initialTheme={defaultTheme}>
         <TooltipProvider>
@@ -62,5 +82,7 @@ const App = () => (
     </AuthProvider>
   </QueryClientProvider>
 );
+
+};
 
 export default App;
