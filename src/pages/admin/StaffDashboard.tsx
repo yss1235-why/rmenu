@@ -12,14 +12,13 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  TrendingUp
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,6 +28,10 @@ import { TablesPanel } from '@/components/admin/TablesPanel';
 import { MenuManagementPanel } from '@/components/admin/MenuManagementPanel';
 import { StaffManagementPanel } from '@/components/admin/StaffManagementPanel';
 import { TableLinksPanel } from '@/components/admin/TableLinksPanel';
+import { useOrders } from '@/hooks/useOrders';
+import { useTables } from '@/hooks/useTables';
+
+const RESTAURANT_ID = import.meta.env.VITE_RESTAURANT_ID || 'demo';
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
@@ -46,6 +49,10 @@ const StaffDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Real-time data from Firebase
+  const { orders, loading: ordersLoading } = useOrders({ restaurantId: RESTAURANT_ID });
+  const { tables, loading: tablesLoading } = useTables({ restaurantId: RESTAURANT_ID });
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -53,15 +60,29 @@ const StaffDashboard = () => {
     }
   }, [loading, isAuthenticated, navigate]);
 
-  // Demo stats (in production, fetch from Firestore)
+  // Calculate real stats from Firebase data
   const stats = {
-    pendingOrders: 5,
-    preparingOrders: 3,
-    readyOrders: 2,
-    completedToday: 47,
-    totalRevenue: 2847.50,
-    occupiedTables: 8,
-    totalTables: 12,
+    pendingOrders: orders.filter(o => o.status === 'pending').length,
+    preparingOrders: orders.filter(o => o.status === 'preparing').length,
+    readyOrders: orders.filter(o => o.status === 'ready').length,
+    completedToday: orders.filter(o => {
+      if (o.status !== 'completed') return false;
+      const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : null;
+      if (!orderDate) return false;
+      const today = new Date();
+      return orderDate.toDateString() === today.toDateString();
+    }).length,
+    totalRevenue: orders
+      .filter(o => {
+        if (o.paymentStatus !== 'paid') return false;
+        const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : null;
+        if (!orderDate) return false;
+        const today = new Date();
+        return orderDate.toDateString() === today.toDateString();
+      })
+      .reduce((sum, o) => sum + (o.total || 0), 0),
+    occupiedTables: tables.filter(t => t.status === 'occupied').length,
+    totalTables: tables.length,
   };
 
   const getInitials = (name: string) => {
@@ -134,15 +155,12 @@ const StaffDashboard = () => {
             size="icon"
             onClick={() => setSidebarOpen(true)}
           >
-            <MenuIcon className="w-5 h-5" />
+            <MenuIcon className="w-6 h-6" />
           </Button>
-          <div className="flex items-center gap-2">
-            <UtensilsCrossed className="w-5 h-5 text-violet-600" />
-            <span className="font-serif font-semibold">Dashboard</span>
-          </div>
-          <Avatar className="h-8 w-8">
+          <h1 className="text-lg font-serif font-semibold">Dashboard</h1>
+          <Avatar className="w-8 h-8">
             <AvatarImage src={photoURL} />
-            <AvatarFallback className="bg-violet-100 text-violet-700 text-xs">
+            <AvatarFallback className="bg-violet-100 dark:bg-violet-900 text-violet-700 dark:text-violet-300 text-xs">
               {getInitials(displayName)}
             </AvatarFallback>
           </Avatar>
@@ -161,21 +179,16 @@ const StaffDashboard = () => {
       <aside className={`
         fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800
         transform transition-transform duration-300 ease-in-out
-        lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <UtensilsCrossed className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="font-serif font-semibold text-lg">Restaurant</h1>
-                  <p className="text-xs text-muted-foreground">Staff Dashboard</p>
-                </div>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-serif font-semibold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+                Restaurant
+              </h2>
               <Button
                 variant="ghost"
                 size="icon"
@@ -185,19 +198,15 @@ const StaffDashboard = () => {
                 <X className="w-5 h-5" />
               </Button>
             </div>
-          </div>
-
-          {/* User Info */}
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+              <Avatar className="w-10 h-10">
                 <AvatarImage src={photoURL} />
-                <AvatarFallback className="bg-violet-100 text-violet-700">
+                <AvatarFallback className="bg-violet-100 dark:bg-violet-900 text-violet-700 dark:text-violet-300">
                   {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{displayName}</p>
+                <p className="font-medium text-sm truncate">{displayName}</p>
                 <div className="flex items-center gap-2">
                   <Badge 
                     variant="secondary" 
@@ -273,131 +282,157 @@ const StaffDashboard = () => {
             </p>
           </div>
 
-          {/* Overview Tab */}
+          {/* Content based on active tab */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
+              {/* Loading indicator */}
+              {(ordersLoading || tablesLoading) && (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Loading real-time data...
+                </div>
+              )}
+
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
+                <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/50">
+                  <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Pending</p>
-                        <p className="text-2xl font-bold text-amber-600">{stats.pendingOrders}</p>
+                        <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Pending</p>
+                        <p className="text-3xl font-bold text-amber-700 dark:text-amber-300 mt-1">
+                          {stats.pendingOrders}
+                        </p>
                       </div>
-                      <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
-                        <Clock className="w-5 h-5 text-amber-600" />
-                      </div>
+                      <Clock className="w-8 h-8 text-amber-500/50" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardContent className="pt-6">
+                <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-800/50">
+                  <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Preparing</p>
-                        <p className="text-2xl font-bold text-blue-600">{stats.preparingOrders}</p>
+                        <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Preparing</p>
+                        <p className="text-3xl font-bold text-blue-700 dark:text-blue-300 mt-1">
+                          {stats.preparingOrders}
+                        </p>
                       </div>
-                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                        <AlertCircle className="w-5 h-5 text-blue-600" />
-                      </div>
+                      <AlertCircle className="w-8 h-8 text-blue-500/50" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardContent className="pt-6">
+                <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-800/50">
+                  <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Ready</p>
-                        <p className="text-2xl font-bold text-emerald-600">{stats.readyOrders}</p>
+                        <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Ready</p>
+                        <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300 mt-1">
+                          {stats.readyOrders}
+                        </p>
                       </div>
-                      <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                      </div>
+                      <CheckCircle2 className="w-8 h-8 text-emerald-500/50" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardContent className="pt-6">
+                <Card className="bg-violet-50 dark:bg-violet-950/30 border-violet-200/50 dark:border-violet-800/50">
+                  <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Today</p>
-                        <p className="text-2xl font-bold text-violet-600">{stats.completedToday}</p>
+                        <p className="text-sm font-medium text-violet-600 dark:text-violet-400">Today's Revenue</p>
+                        <p className="text-3xl font-bold text-violet-700 dark:text-violet-300 mt-1">
+                          ₹{stats.totalRevenue.toFixed(2)}
+                        </p>
                       </div>
-                      <div className="w-10 h-10 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-violet-600" />
-                      </div>
+                      <TrendingUp className="w-8 h-8 text-violet-500/50" />
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Revenue & Tables */}
-              <div className="grid lg:grid-cols-2 gap-6">
+              {/* Secondary Stats */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Today's Revenue</CardTitle>
-                    <CardDescription>Total earnings from completed orders</CardDescription>
+                    <CardTitle className="text-lg">Table Status</CardTitle>
+                    <CardDescription>Current occupancy overview</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-emerald-600">
-                      ₹{stats.totalRevenue.toLocaleString()}
-                    </p>
+                    {tables.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500">
+                        <QrCode className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>No tables configured yet</p>
+                        <p className="text-sm">Add tables in the Tables section</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Occupied</span>
+                          <span className="font-semibold">{stats.occupiedTables} / {stats.totalTables}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3">
+                          <div 
+                            className="bg-gradient-to-r from-violet-500 to-purple-600 h-3 rounded-full transition-all"
+                            style={{ width: stats.totalTables > 0 ? `${(stats.occupiedTables / stats.totalTables) * 100}%` : '0%' }}
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 pt-2">
+                          <div className="text-center">
+                            <p className="text-2xl font-bold text-emerald-600">{tables.filter(t => t.status === 'available').length}</p>
+                            <p className="text-xs text-slate-500">Available</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-2xl font-bold text-violet-600">{stats.occupiedTables}</p>
+                            <p className="text-xs text-slate-500">Occupied</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-2xl font-bold text-amber-600">{tables.filter(t => t.status === 'reserved').length}</p>
+                            <p className="text-xs text-slate-500">Reserved</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Table Occupancy</CardTitle>
-                    <CardDescription>Current seating status</CardDescription>
+                    <CardTitle className="text-lg">Today's Summary</CardTitle>
+                    <CardDescription>Orders completed today</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-4">
-                      <p className="text-3xl font-bold">
-                        {stats.occupiedTables}/{stats.totalTables}
-                      </p>
-                      <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-3">
-                        <div 
-                          className="bg-violet-600 h-3 rounded-full transition-all"
-                          style={{ width: `${(stats.occupiedTables / stats.totalTables) * 100}%` }}
-                        />
+                    {orders.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500">
+                        <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>No orders yet</p>
+                        <p className="text-sm">Orders will appear here</p>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Completed Orders</span>
+                          <span className="font-semibold text-emerald-600">{stats.completedToday}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Active Orders</span>
+                          <span className="font-semibold text-blue-600">
+                            {stats.pendingOrders + stats.preparingOrders + stats.readyOrders}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <span className="text-slate-600 dark:text-slate-400 font-medium">Total Revenue</span>
+                          <span className="font-bold text-lg text-violet-600">₹{stats.totalRevenue.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {visibleNavItems.filter(item => item.id !== 'overview').map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <Button
-                          key={item.id}
-                          variant="outline"
-                          className="h-auto py-4 flex flex-col items-center gap-2"
-                          onClick={() => setActiveTab(item.id)}
-                        >
-                          <Icon className="w-5 h-5" />
-                          <span className="text-sm">{item.label}</span>
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           )}
 
-          {/* Other Tabs */}
           {activeTab === 'orders' && <OrdersPanel />}
           {activeTab === 'tables' && <TablesPanel />}
           {activeTab === 'table-links' && <TableLinksPanel />}
