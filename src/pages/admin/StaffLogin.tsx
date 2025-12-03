@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UtensilsCrossed, AlertCircle, Clock, ShieldX } from 'lucide-react';
+import { UtensilsCrossed, AlertCircle, Clock, ShieldX, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -188,6 +188,17 @@ const StaffLogin = () => {
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 dark:bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/40 dark:bg-accent/20 rounded-full blur-3xl" />
       </div>
+
+      {/* Home Button - Top Left */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => navigate('/')}
+        className="absolute top-4 left-4 z-10 bg-card/80 dark:bg-card/80 backdrop-blur-sm hover:bg-card dark:hover:bg-card border border-border/50 shadow-sm"
+        aria-label="Back to home"
+      >
+        <Home className="w-5 h-5" />
+      </Button>
 
       <Card className="w-full max-w-md relative shadow-2xl shadow-primary/10 border-primary/10 dark:border-primary/20">
         <CardHeader className="text-center pb-2">
