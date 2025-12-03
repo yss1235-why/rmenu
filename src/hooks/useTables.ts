@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { tableService } from '@/services/tableService';
-import { Table, TableStatus, generateTableLink, TableLink } from '@/types/table';
+import { tableService, generateTableLink } from '@/services/tableService';
+import { Table, TableStatus, TableLink } from '@/types/table';
 
 interface UseTablesOptions {
   restaurantId: string;
@@ -8,7 +8,11 @@ interface UseTablesOptions {
   realtime?: boolean;
 }
 
-export const useTables = ({ restaurantId, restaurantSlug, realtime = true }: UseTablesOptions) => {
+export const useTables = ({ 
+  restaurantId, 
+  restaurantSlug = 'restaurant',
+  realtime = true 
+}: UseTablesOptions) => {
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -46,35 +50,54 @@ export const useTables = ({ restaurantId, restaurantSlug, realtime = true }: Use
     };
   }, [restaurantId, realtime]);
 
-  // Create table
+  // Create a single table
   const createTable = useCallback(
-    async (data: Omit<Table, 'id' | 'createdAt' | 'updatedAt' | 'restaurantId'>) => {
+    async (data: {
+      tableNumber: string;
+      displayName?: string;
+      capacity: number;
+      section?: string;
+    }) => {
       return tableService.createTable({
-        ...data,
         restaurantId,
+        tableNumber: data.tableNumber,
+        displayName: data.displayName || `Table ${data.tableNumber}`,
+        capacity: data.capacity,
+        status: 'available',
+        section: data.section,
+        isActive: true,
       });
     },
     [restaurantId]
   );
 
-  // Update table
-  const updateTable = useCallback(async (tableId: string, data: Partial<Table>) => {
-    return tableService.updateTable(tableId, data);
-  }, []);
+  // Update table details
+  const updateTable = useCallback(
+    async (tableId: string, data: Partial<Table>) => {
+      return tableService.updateTable(tableId, data);
+    },
+    []
+  );
 
-  // Update status
-  const updateStatus = useCallback(async (tableId: string, status: TableStatus) => {
-    return tableService.updateTableStatus(tableId, status);
-  }, []);
+  // Update table status
+  const updateStatus = useCallback(
+    async (tableId: string, status: TableStatus) => {
+      return tableService.updateTableStatus(tableId, status);
+    },
+    []
+  );
 
   // Delete table
-  const deleteTable = useCallback(async (tableId: string) => {
-    return tableService.deleteTable(tableId);
-  }, []);
+  const deleteTable = useCallback(
+    async (tableId: string) => {
+      return tableService.deleteTable(tableId);
+    },
+    []
+  );
 
   // Bulk create tables
   const bulkCreateTables = useCallback(
-    async (startNumber: number, endNumber: number, capacity?: number, section?: string) => {
+    async (startNumber: number, endNumber: number, capacity: number, section?: string) => {
       return tableService.bulkCreateTables(restaurantId, startNumber, endNumber, capacity, section);
     },
     [restaurantId]
@@ -127,29 +150,4 @@ export const useTables = ({ restaurantId, restaurantSlug, realtime = true }: Use
     reservedTables,
     sections,
   };
-};
-
-// Demo tables for development
-export const useDemoTables = (restaurantSlug: string = 'demo'): {
-  tables: Table[];
-  generateTableLinks: () => TableLink[];
-} => {
-  const tables: Table[] = Array.from({ length: 12 }, (_, i) => ({
-    id: `table-${i + 1}`,
-    restaurantId: 'demo',
-    tableNumber: (i + 1).toString(),
-    displayName: `Table ${i + 1}`,
-    capacity: i < 6 ? 2 : i < 10 ? 4 : 6,
-    status: ['available', 'occupied', 'available', 'reserved'][i % 4] as TableStatus,
-    section: i < 6 ? 'Main Hall' : 'Patio',
-    isActive: true,
-    createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-    updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-  }));
-
-  const generateTableLinks = (): TableLink[] => {
-    return tables.map((table) => generateTableLink(table, restaurantSlug));
-  };
-
-  return { tables, generateTableLinks };
 };
