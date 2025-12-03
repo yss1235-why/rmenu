@@ -349,7 +349,7 @@ const Index = () => {
                 )}
               </SheetContent>
             </Sheet>
-        </Sheet>
+       
 
             {/* Login Button */}
             <Link to="/login">
