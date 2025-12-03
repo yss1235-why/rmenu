@@ -163,7 +163,7 @@ const StaffLogin = () => {
             Don't have access?{' '}
             <button 
               onClick={handleContactAdmin}
-              className="text-violet-600 hover:underline font-medium"
+              className="text-primary hover:underline font-medium"
             >
               Contact your administrator
             </button>
@@ -171,8 +171,8 @@ const StaffLogin = () => {
         </div>
 
         {/* Info notice */}
-        <div className="mt-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3 text-center">
-          <p className="text-xs text-slate-600 dark:text-slate-400">
+        <div className="mt-4 rounded-lg bg-muted/30 dark:bg-muted/10 border border-border p-3 text-center">
+          <p className="text-xs text-muted-foreground">
             Only pre-approved staff members can access the dashboard.
             Sign in with your authorized Google account.
           </p>
@@ -182,17 +182,17 @@ const StaffLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 dark:from-slate-900 dark:via-purple-950/20 dark:to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-accent to-primary/10 dark:from-background dark:via-accent/5 dark:to-background p-4">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-violet-200/40 dark:bg-violet-900/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200/40 dark:bg-purple-900/20 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 dark:bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/40 dark:bg-accent/20 rounded-full blur-3xl" />
       </div>
 
-      <Card className="w-full max-w-md relative shadow-2xl shadow-violet-500/10 border-violet-100 dark:border-violet-900/50">
+      <Card className="w-full max-w-md relative shadow-2xl shadow-primary/10 border-primary/10 dark:border-primary/20">
         <CardHeader className="text-center pb-2">
           {/* Logo */}
-          <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-500/25">
+          <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-primary to-accent-foreground rounded-2xl flex items-center justify-center shadow-lg shadow-primary/25">
             <UtensilsCrossed className="w-8 h-8 text-white" />
           </div>
           <CardTitle className="font-serif text-2xl">Staff Portal</CardTitle>
@@ -219,7 +219,7 @@ interface GoogleSignInButtonProps {
 const GoogleSignInButton = ({ onClick, disabled, isLoading }: GoogleSignInButtonProps) => (
   <Button
     variant="outline"
-    className="w-full h-12 text-base border-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+    className="w-full h-12 text-base border-2 hover:bg-muted/50 dark:hover:bg-muted/20 transition-all"
     onClick={onClick}
     disabled={disabled}
   >
