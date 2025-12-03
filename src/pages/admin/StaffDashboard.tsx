@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MenuIcon } from 'lucide-react';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { 
   UtensilsCrossed, 
   ShoppingBag, 
@@ -125,14 +127,7 @@ const StaffDashboard = () => {
 
   // Show loading state
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 dark:text-slate-400">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Loading dashboard..." />;
   }
 
   // Don't render if not authenticated (will redirect)
