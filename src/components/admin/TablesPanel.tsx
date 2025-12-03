@@ -48,26 +48,26 @@ const RESTAURANT_ID = import.meta.env.VITE_RESTAURANT_ID || 'demo';
 const statusConfig: Record<TableStatus, { label: string; color: string; bgColor: string; icon: typeof CheckCircle }> = {
   available: { 
     label: 'Available', 
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
+    color: 'text-success',
+    bgColor: 'bg-success/10 dark:bg-success/20',
     icon: CheckCircle 
   },
   occupied: { 
     label: 'Occupied', 
-    color: 'text-violet-600 dark:text-violet-400',
-    bgColor: 'bg-violet-100 dark:bg-violet-900/30',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10 dark:bg-primary/20',
     icon: Users 
   },
   reserved: { 
     label: 'Reserved', 
-    color: 'text-amber-600 dark:text-amber-400',
-    bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+    color: 'text-warning',
+    bgColor: 'bg-warning/10 dark:bg-warning/20',
     icon: Clock 
   },
   cleaning: { 
     label: 'Cleaning', 
-    color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+    color: 'text-info',
+    bgColor: 'bg-info/10 dark:bg-info/20',
     icon: RefreshCw 
   },
 };
@@ -292,7 +292,7 @@ export const TablesPanel = () => {
                 <Button 
                   onClick={handleBulkCreate}
                   disabled={!bulkForm.startNumber || !bulkForm.endNumber}
-                  className="bg-gradient-to-r from-violet-500 to-purple-600"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   Create Tables
                 </Button>
@@ -379,26 +379,26 @@ export const TablesPanel = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-slate-500">Total Tables</p>
+            <p className="text-sm text-muted-foreground">Total Tables</p>
             <p className="text-2xl font-bold">{stats.total}</p>
           </CardContent>
         </Card>
-        <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50">
+        <Card className="bg-success/10 dark:bg-success/5 border-success/20">
           <CardContent className="p-4">
-            <p className="text-sm text-emerald-600 dark:text-emerald-400">Available</p>
-            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{stats.available}</p>
+            <p className="text-sm text-success">Available</p>
+            <p className="text-2xl font-bold text-success">{stats.available}</p>
           </CardContent>
         </Card>
-        <Card className="bg-violet-50 dark:bg-violet-950/30 border-violet-200/50">
+        <Card className="bg-primary/10 dark:bg-primary/5 border-primary/20">
           <CardContent className="p-4">
-            <p className="text-sm text-violet-600 dark:text-violet-400">Occupied</p>
-            <p className="text-2xl font-bold text-violet-700 dark:text-violet-300">{stats.occupied}</p>
+            <p className="text-sm text-primary">Occupied</p>
+            <p className="text-2xl font-bold text-primary">{stats.occupied}</p>
           </CardContent>
         </Card>
-        <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200/50">
+        <Card className="bg-warning/10 dark:bg-warning/5 border-warning/20">
           <CardContent className="p-4">
-            <p className="text-sm text-amber-600 dark:text-amber-400">Reserved</p>
-            <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{stats.reserved}</p>
+            <p className="text-sm text-warning">Reserved</p>
+            <p className="text-2xl font-bold text-warning">{stats.reserved}</p>
           </CardContent>
         </Card>
       </div>
@@ -410,7 +410,7 @@ export const TablesPanel = () => {
             variant={filterSection === 'all' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setFilterSection('all')}
-            className={filterSection === 'all' ? 'bg-gradient-to-r from-violet-500 to-purple-600' : ''}
+            className={filterSection === 'all' ? 'bg-primary' : ''}
           >
             All
           </Button>
@@ -420,7 +420,7 @@ export const TablesPanel = () => {
               variant={filterSection === section ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilterSection(section)}
-              className={filterSection === section ? 'bg-gradient-to-r from-violet-500 to-purple-600' : ''}
+              className={filterSection === section ? 'bg-primary' : ''}
             >
               {section}
             </Button>
