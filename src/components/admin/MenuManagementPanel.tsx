@@ -137,6 +137,7 @@ export const MenuManagementPanel = () => {
         image: itemForm.image,
         available: itemForm.available,
         isSpecial: itemForm.isSpecial,
+        order: menuItems.length,
       });
 
       setItemForm({
@@ -175,6 +176,7 @@ export const MenuManagementPanel = () => {
         image: itemForm.image,
         available: itemForm.available,
         isSpecial: itemForm.isSpecial,
+        order: editingItem.order ?? menuItems.length,
       });
 
       setEditingItem(null);
