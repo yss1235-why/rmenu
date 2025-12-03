@@ -27,6 +27,12 @@
     --input: 0 0% 83%;
     --ring: 243 75% 58%;
     --radius: 1rem;
+    --success: 142 76% 36%;
+    --success-foreground: 142 76% 97%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 97%;
+    --info: 217 91% 60%;
+    --info-foreground: 217 91% 97%;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 9%;
     --sidebar-primary: 243 75% 58%;
@@ -75,6 +81,12 @@
     --border: 0 0% 32%;
     --input: 0 0% 32%;
     --ring: 234 89% 73%;
+    --success: 142 71% 45%;
+    --success-foreground: 142 76% 10%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 10%;
+    --info: 217 91% 65%;
+    --info-foreground: 217 91% 10%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 234 89% 73%;
