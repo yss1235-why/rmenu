@@ -467,10 +467,6 @@ const Index = () => {
                       aspectRatio="square"
                       showPlaceholder={false}
                     />
-                        alt={item.name}
-                        className="w-16 h-16 rounded-lg object-cover"
-                      />
-                    )}
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium truncate">{item.name}</h4>
                       <p className="text-sm text-violet-600 font-semibold">
