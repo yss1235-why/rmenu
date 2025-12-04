@@ -1,26 +1,43 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getOptimizedImageUrl } from '@/lib/cloudinary';
 import { cn } from '@/lib/utils';
+import { filterValidImages } from './MenuImage';
 
 interface ImageLightboxProps {
-  images: string[];
-  initialIndex: number;
+  images?: string[] | null;
+  fallbackImage?: string | null;
+  initialIndex?: number;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const ImageLightbox = ({ images, initialIndex, isOpen, onClose }: ImageLightboxProps) => {
+export const ImageLightbox = ({ 
+  images, 
+  fallbackImage,
+  initialIndex = 0, 
+  isOpen, 
+  onClose 
+}: ImageLightboxProps) => {
+  // Filter to only valid images
+  const validImages = filterValidImages(images, fallbackImage);
+  
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const minSwipeDistance = 50;
 
   useEffect(() => {
-    setCurrentIndex(initialIndex);
-  }, [initialIndex]);
+    // Reset to initial index when opened, but clamp to valid range
+    const maxIndex = Math.max(0, validImages.length - 1);
+    setCurrentIndex(Math.min(initialIndex, maxIndex));
+    setIsLoaded(false);
+    setHasError(false);
+  }, [initialIndex, isOpen, validImages.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -32,7 +49,7 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose }: ImageLi
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, validImages.length]);
 
   useEffect(() => {
     if (isOpen) {
@@ -46,11 +63,17 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose }: ImageLi
   }, [isOpen]);
 
   const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    if (validImages.length <= 1) return;
+    setIsLoaded(false);
+    setHasError(false);
+    setCurrentIndex((prev) => (prev === 0 ? validImages.length - 1 : prev - 1));
   };
 
   const goToNext = () => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    if (validImages.length <= 1) return;
+    setIsLoaded(false);
+    setHasError(false);
+    setCurrentIndex((prev) => (prev === validImages.length - 1 ? 0 : prev + 1));
   };
 
   const onTouchStart = (e: React.TouchEvent) => {
@@ -74,6 +97,31 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose }: ImageLi
 
   if (!isOpen) return null;
 
+  // No valid images
+  if (validImages.length === 0) {
+    return (
+      <div 
+        className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+        onClick={onClose}
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 text-white hover:bg-white/20 z-10"
+          onClick={onClose}
+        >
+          <X className="w-6 h-6" />
+        </Button>
+        <div className="flex flex-col items-center gap-2 text-white/60">
+          <ImageIcon className="w-16 h-16" />
+          <span>No image available</span>
+        </div>
+      </div>
+    );
+  }
+
+  const currentImage = validImages[currentIndex];
+
   return (
     <div 
       className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
@@ -90,9 +138,11 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose }: ImageLi
       </Button>
 
       {/* Image Counter */}
-      <div className="absolute top-4 left-4 text-white/80 text-sm">
-        {currentIndex + 1} / {images.length}
-      </div>
+      {validImages.length > 1 && (
+        <div className="absolute top-4 left-4 text-white/80 text-sm">
+          {currentIndex + 1} / {validImages.length}
+        </div>
+      )}
 
       {/* Main Image */}
       <div
@@ -102,15 +152,30 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose }: ImageLi
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
+        {/* Loading indicator */}
+        {!isLoaded && !hasError && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+        )}
+        
         <img
-          src={getOptimizedImageUrl(images[currentIndex], 'hero')}
+          src={hasError ? currentImage : getOptimizedImageUrl(currentImage, 'hero')}
           alt={`Image ${currentIndex + 1}`}
-          className="max-w-full max-h-full object-contain"
+          className={cn(
+            'max-w-full max-h-full object-contain transition-opacity duration-300',
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          )}
+          onLoad={() => setIsLoaded(true)}
+          onError={() => {
+            setHasError(true);
+            setIsLoaded(true);
+          }}
         />
       </div>
 
       {/* Navigation Arrows */}
-      {images.length > 1 && (
+      {validImages.length > 1 && (
         <>
           <Button
             variant="ghost"
@@ -138,13 +203,15 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose }: ImageLi
       )}
 
       {/* Dot Indicators */}
-      {images.length > 1 && (
+      {validImages.length > 1 && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-          {images.map((_, index) => (
+          {validImages.map((_, index) => (
             <button
               key={index}
               onClick={(e) => {
                 e.stopPropagation();
+                setIsLoaded(false);
+                setHasError(false);
                 setCurrentIndex(index);
               }}
               className={cn(
