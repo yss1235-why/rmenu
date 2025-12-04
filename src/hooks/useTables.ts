@@ -58,15 +58,21 @@ export const useTables = ({
       capacity: number;
       section?: string;
     }) => {
-      return tableService.createTable({
+      const tableData: any = {
         restaurantId,
         tableNumber: data.tableNumber,
         displayName: data.displayName || `Table ${data.tableNumber}`,
         capacity: data.capacity,
         status: 'available',
-        section: data.section,
         isActive: true,
-      });
+      };
+      
+      // Only add section if it has a value (Firestore doesn't allow undefined)
+      if (data.section) {
+        tableData.section = data.section;
+      }
+      
+      return tableService.createTable(tableData);
     },
     [restaurantId]
   );
