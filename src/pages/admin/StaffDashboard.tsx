@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MenuIcon } from 'lucide-react';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { 
   UtensilsCrossed, 
