@@ -14,7 +14,7 @@ export const IMAGE_PRESETS = {
   foodProfessional: {
     width: 800,
     height: 600,
-    crop: 'fill',
+    crop: 'fit',
     gravity: 'auto',
     quality: 'auto:best',
     format: 'auto',
@@ -26,7 +26,7 @@ export const IMAGE_PRESETS = {
   thumbnail: {
     width: 150,
     height: 150,
-    crop: 'thumb',
+    crop: 'fit',
     gravity: 'auto',
     quality: 'auto:good',
     format: 'auto',
@@ -36,7 +36,7 @@ export const IMAGE_PRESETS = {
   menuCard: {
     width: 400,
     height: 300,
-    crop: 'fill',
+    crop: 'fit',
     gravity: 'auto',
     quality: 'auto:good',
     format: 'auto',
@@ -46,7 +46,7 @@ export const IMAGE_PRESETS = {
   hero: {
     width: 1200,
     height: 600,
-    crop: 'fill',
+    crop: 'fit',
     gravity: 'auto',
     quality: 'auto:best',
     format: 'auto',
@@ -56,13 +56,12 @@ export const IMAGE_PRESETS = {
   backgroundBlur: {
     width: 800,
     height: 600,
-    crop: 'fill',
+    crop: 'fit',
     effect: 'blur:1000',
     quality: 'auto:low',
     format: 'auto',
   },
 };
-
 export type ImagePreset = keyof typeof IMAGE_PRESETS;
 
 // Transform options interface
