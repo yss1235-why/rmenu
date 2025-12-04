@@ -7,12 +7,67 @@ import { getOptimizedImageUrl } from '@/lib/cloudinary';
 interface MenuItemCardProps {
   item: MenuItem;
   onAddToCart: (item: MenuItem) => void;
+  variant?: 'featured' | 'compact';
 }
 
-export const MenuItemCard = ({ item, onAddToCart }: MenuItemCardProps) => {
+export const MenuItemCard = ({ item, onAddToCart, variant = 'featured' }: MenuItemCardProps) => {
   // Get optimized image URL from Cloudinary
-  const imageUrl = getOptimizedImageUrl(item.image, 'menuCard');
+  const imageUrl = getOptimizedImageUrl(item.image, variant === 'featured' ? 'menuCard' : 'thumbnail');
 
+  // Compact variant for 2-per-row grid on mobile
+  if (variant === 'compact') {
+    return (
+      <div className="menu-card no-select">
+        {/* Image Container - Square aspect ratio for compact */}
+        <div className="relative">
+          <img
+            src={imageUrl}
+            alt={item.name}
+            className="aspect-square w-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = item.image;
+            }}
+          />
+          {item.isSpecial && (
+            <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5">
+              Special
+            </Badge>
+          )}
+          {!item.available && (
+            <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+              <span className="text-muted-foreground text-sm font-medium">Unavailable</span>
+            </div>
+          )}
+        </div>
+
+        {/* Compact Content */}
+        <div className="p-2.5">
+          <h3 className="font-serif text-sm font-semibold text-foreground leading-tight line-clamp-2 mb-1">
+            {item.name}
+          </h3>
+          <p className="text-muted-foreground text-xs mb-2 line-clamp-2 leading-relaxed">
+            {item.description}
+          </p>
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-serif text-sm text-primary font-bold">
+              ${item.price.toFixed(2)}
+            </span>
+            <Button
+              onClick={() => onAddToCart(item)}
+              disabled={!item.available}
+              className="rounded-full p-0 w-8 h-8 min-w-0"
+              size="icon"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Featured variant (full-width) - original design
   return (
     <div className="menu-card no-select">
       {/* Image Container */}
@@ -23,7 +78,6 @@ export const MenuItemCard = ({ item, onAddToCart }: MenuItemCardProps) => {
           className="menu-card-image"
           loading="lazy"
           onError={(e) => {
-            // Fallback to original image if optimization fails
             (e.target as HTMLImageElement).src = item.image;
           }}
         />
