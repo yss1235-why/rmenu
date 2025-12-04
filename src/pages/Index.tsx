@@ -358,8 +358,8 @@ const Index = () => {
               )}
               
               {/* Content Area - Swipe here changes item */}
-              <div 
-                className="p-6"
+             <div 
+                className="p-6 transition-opacity duration-200 ease-out"
                 onTouchStart={(e) => {
                   (e.currentTarget as any)._touchStartX = e.touches[0].clientX;
                 }}
