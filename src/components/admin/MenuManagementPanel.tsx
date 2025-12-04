@@ -50,6 +50,7 @@ import { MenuItem, Category } from '@/types/menu';
 import { useMenu } from '@/hooks/useMenu';
 import { useToast } from '@/hooks/use-toast';
 import { uploadImage } from '@/lib/cloudinary';
+import { MenuImage } from '@/components/MenuImage';
 
 const RESTAURANT_ID = import.meta.env.VITE_RESTAURANT_ID || 'demo';
 
@@ -512,13 +513,13 @@ const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
               {filteredItems.map((item) => (
                 <Card key={item.id} className={`${!item.available ? 'opacity-60' : ''}`}>
                   <CardContent className="p-4 flex items-center gap-4">
-                    {item.image && (
-                      <img 
-                        src={item.image} 
-                        alt={item.name}
-                        className="w-16 h-16 rounded-lg object-cover"
-                      />
-                    )}
+                    <MenuImage
+                      src={item.image}
+                      alt={item.name}
+                      preset="thumbnail"
+                      className="w-16 h-16 rounded-lg flex-shrink-0"
+                      aspectRatio="square"
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{item.name}</h3>
