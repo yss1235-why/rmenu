@@ -1,32 +1,44 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getOptimizedImageUrl } from '@/lib/cloudinary';
 import { cn } from '@/lib/utils';
+import { filterValidImages } from './MenuImage';
 
 interface ImageCarouselProps {
-  images: string[];
+  images?: string[] | null;
+  fallbackImage?: string | null;
   alt: string;
   onImageClick?: (index: number) => void;
   className?: string;
 }
 
-export const ImageCarousel = ({ images, alt, onImageClick, className }: ImageCarouselProps) => {
+export const ImageCarousel = ({ 
+  images, 
+  fallbackImage,
+  alt, 
+  onImageClick, 
+  className 
+}: ImageCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
+  const [errorImages, setErrorImages] = useState<Set<number>>(new Set());
 
-  // Minimum swipe distance
+  // Filter to only valid images
+  const validImages = filterValidImages(images, fallbackImage);
+
   const minSwipeDistance = 50;
 
   const goToPrevious = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? validImages.length - 1 : prev - 1));
   };
 
   const goToNext = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev === validImages.length - 1 ? 0 : prev + 1));
   };
 
   const goToSlide = (index: number) => {
@@ -55,31 +67,56 @@ export const ImageCarousel = ({ images, alt, onImageClick, className }: ImageCar
     }
   };
 
-  if (!images || images.length === 0) {
+  const handleImageLoad = (index: number) => {
+    setLoadedImages(prev => new Set(prev).add(index));
+  };
+
+  const handleImageError = (index: number) => {
+    setErrorImages(prev => new Set(prev).add(index));
+  };
+
+  // No valid images - show placeholder
+  if (validImages.length === 0) {
     return (
       <div className={cn('aspect-video bg-muted flex items-center justify-center', className)}>
-        <span className="text-muted-foreground">No image</span>
+        <div className="flex flex-col items-center gap-1 text-muted-foreground">
+          <ImageIcon className="w-8 h-8 opacity-50" />
+          <span className="text-sm">No image</span>
+        </div>
       </div>
     );
   }
 
-  if (images.length === 1) {
+  // Single image - no carousel needed
+  if (validImages.length === 1) {
+    const isLoaded = loadedImages.has(0);
+    const hasError = errorImages.has(0);
+    
     return (
       <div 
-        className={cn('aspect-video overflow-hidden cursor-pointer', className)}
+        className={cn('aspect-video overflow-hidden cursor-pointer relative bg-muted', className)}
         onClick={() => onImageClick?.(0)}
       >
+        {!isLoaded && !hasError && (
+          <div className="absolute inset-0 bg-muted animate-pulse" />
+        )}
         <img
-          src={getOptimizedImageUrl(images[0], 'menuCard')}
+          src={hasError ? validImages[0] : getOptimizedImageUrl(validImages[0], 'menuCard')}
           alt={alt}
-          className="w-full h-full object-cover"
+          className={cn(
+            'w-full h-full object-cover transition-opacity duration-300',
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          )}
+          onLoad={() => handleImageLoad(0)}
+          onError={() => handleImageError(0)}
         />
       </div>
     );
   }
 
+  // Multiple images - show carousel
   return (
-    <div className={cn('relative aspect-video overflow-hidden group', className)}>
+    <div className={cn('relative aspect-video overflow-hidden group bg-muted', className)}>
       {/* Images */}
       <div
         className="flex h-full transition-transform duration-300 ease-out"
@@ -88,19 +125,32 @@ export const ImageCarousel = ({ images, alt, onImageClick, className }: ImageCar
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {images.map((image, index) => (
-          <div
-            key={index}
-            className="min-w-full h-full cursor-pointer"
-            onClick={() => onImageClick?.(index)}
-          >
-            <img
-              src={getOptimizedImageUrl(image, 'menuCard')}
-              alt={`${alt} ${index + 1}`}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ))}
+        {validImages.map((image, index) => {
+          const isLoaded = loadedImages.has(index);
+          const hasError = errorImages.has(index);
+          
+          return (
+            <div
+              key={index}
+              className="min-w-full h-full cursor-pointer relative"
+              onClick={() => onImageClick?.(index)}
+            >
+              {!isLoaded && !hasError && (
+                <div className="absolute inset-0 bg-muted animate-pulse" />
+              )}
+              <img
+                src={hasError ? image : getOptimizedImageUrl(image, 'menuCard')}
+                alt={`${alt} ${index + 1}`}
+                className={cn(
+                  'w-full h-full object-cover transition-opacity duration-300',
+                  isLoaded ? 'opacity-100' : 'opacity-0'
+                )}
+                onLoad={() => handleImageLoad(index)}
+                onError={() => handleImageError(index)}
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* Navigation Arrows */}
@@ -123,7 +173,7 @@ export const ImageCarousel = ({ images, alt, onImageClick, className }: ImageCar
 
       {/* Dot Indicators */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-        {images.map((_, index) => (
+        {validImages.map((_, index) => (
           <button
             key={index}
             onClick={(e) => {
