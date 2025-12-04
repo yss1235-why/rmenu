@@ -1,159 +1,142 @@
-import { MenuItem } from '@/types/menu';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Plus } from 'lucide-react';
-import { MenuImage } from './MenuImage';
+import { useState } from 'react';
+import { ImageIcon } from 'lucide-react';
+import { getOptimizedImageUrl, ImagePreset } from '@/lib/cloudinary';
+import { cn } from '@/lib/utils';
 
-interface MenuItemCardProps {
-  item: MenuItem;
-  onAddToCart?: (item: MenuItem) => void;
-  onView?: (item: MenuItem) => void;
-  variant?: 'featured' | 'compact';
+interface MenuImageProps {
+  src?: string | null;
+  alt: string;
+  preset?: ImagePreset;
+  className?: string;
+  aspectRatio?: 'video' | 'square' | 'auto';
+  showPlaceholder?: boolean;
+  placeholderText?: string;
+  onClick?: () => void;
 }
 
-export const MenuItemCard = ({ 
-  item, 
-  onAddToCart, 
-  onView,
-  variant = 'featured' 
-}: MenuItemCardProps) => {
+/**
+ * Unified image component for all menu item images.
+ * Handles:
+ * - Empty/null/undefined image URLs
+ * - Cloudinary optimization
+ * - Loading states
+ * - Error fallbacks
+ * - Placeholder display
+ */
+export const MenuImage = ({
+  src,
+  alt,
+  preset = 'menuCard',
+  className,
+  aspectRatio = 'video',
+  showPlaceholder = true,
+  placeholderText = 'No image',
+  onClick,
+}: MenuImageProps) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  // Check if we have a valid image URL
+  const hasValidImage = !!src && src.trim() !== '';
   
-  const handleClick = () => {
-    if (onView) {
-      onView(item);
-    }
+  // Get optimized URL only if we have a valid source
+  const optimizedSrc = hasValidImage ? getOptimizedImageUrl(src, preset) : '';
+
+  const handleLoad = () => {
+    setIsLoading(false);
   };
 
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onAddToCart) {
-      onAddToCart(item);
-    }
+  const handleError = () => {
+    setHasError(true);
+    setIsLoading(false);
   };
 
-  // Compact variant for 2-per-row grid on mobile
-  if (variant === 'compact') {
+  // Aspect ratio classes
+  const aspectClasses = {
+    video: 'aspect-video',
+    square: 'aspect-square',
+    auto: '',
+  };
+
+  // If no valid image, show placeholder
+  if (!hasValidImage || hasError) {
+    if (!showPlaceholder) return null;
+    
     return (
       <div 
-        className="menu-card no-select cursor-pointer"
-        onClick={handleClick}
+        className={cn(
+          'bg-muted flex items-center justify-center',
+          aspectClasses[aspectRatio],
+          className
+        )}
+        onClick={onClick}
       >
-        {/* Image Container - Square aspect ratio for compact */}
-        <div className="relative">
-          <MenuImage
-            src={item.image}
-            alt={item.name}
-            preset="thumbnail"
-            aspectRatio="square"
-          />
-          {item.isSpecial && (
-            <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5">
-              Special
-            </Badge>
-          )}
-          {!item.available && (
-            <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-              <span className="text-muted-foreground text-sm font-medium">Unavailable</span>
-            </div>
-          )}
-        </div>
-
-        {/* Compact Content */}
-        <div className="p-2.5">
-          <h3 className="font-serif text-sm font-semibold text-foreground leading-tight line-clamp-2 mb-1">
-            {item.name}
-          </h3>
-          <p className="text-muted-foreground text-xs mb-2 line-clamp-2 leading-relaxed">
-            {item.description}
-          </p>
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-serif text-sm text-primary font-bold">
-              ₹{item.price.toFixed(2)}
-            </span>
-            {onAddToCart && (
-              <Button
-                onClick={handleAddToCart}
-                disabled={!item.available}
-                className="rounded-full p-0 w-8 h-8 min-w-0"
-                size="icon"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
+        <div className="flex flex-col items-center gap-1 text-muted-foreground">
+          <ImageIcon className="w-8 h-8 opacity-50" />
+          <span className="text-xs">{placeholderText}</span>
         </div>
       </div>
     );
   }
 
-  // Featured variant (full-width) - original design
   return (
     <div 
-      className="menu-card no-select cursor-pointer"
-      onClick={handleClick}
+      className={cn(
+        'relative overflow-hidden bg-muted',
+        aspectClasses[aspectRatio],
+        onClick && 'cursor-pointer',
+        className
+      )}
+      onClick={onClick}
     >
-      {/* Image Container */}
-      <div className="relative">
-        <MenuImage
-          src={item.image}
-          alt={item.name}
-          preset="menuCard"
-          aspectRatio="video"
-          className="menu-card-image"
-        />
-        {item.isSpecial && (
-          <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground text-xs px-2 py-1">
-            Special
-          </Badge>
+      {/* Loading skeleton */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-muted animate-pulse" />
+      )}
+      
+      {/* Actual image */}
+      <img
+        src={hasError ? src : optimizedSrc}
+        alt={alt}
+        className={cn(
+          'w-full h-full object-cover transition-opacity duration-300',
+          isLoading ? 'opacity-0' : 'opacity-100'
         )}
-        {!item.available && (
-          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-            <span className="text-muted-foreground font-medium">Unavailable</span>
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="p-4">
-        <div className="flex justify-between items-start gap-2 mb-2">
-          <h3 className="font-serif text-lg font-semibold text-foreground leading-tight">
-            {item.name}
-          </h3>
-          <span className="font-serif text-lg text-primary font-bold whitespace-nowrap">
-            ₹{item.price.toFixed(2)}
-          </span>
-        </div>
-
-        <p className="text-muted-foreground text-sm mb-3 line-clamp-2 leading-relaxed">
-          {item.description}
-        </p>
-
-        {/* Tags */}
-        {item.tags && item.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {item.tags.map((tag) => (
-              <span
-                key={tag}
-                className="text-xs px-2 py-0.5 bg-muted/50 text-muted-foreground rounded-full"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {onAddToCart && (
-          <Button
-            onClick={handleAddToCart}
-            disabled={!item.available}
-            className="w-full touch-btn rounded-xl font-semibold"
-            size="lg"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            {item.available ? 'Add to Order' : 'Unavailable'}
-          </Button>
-        )}
-      </div>
+        loading="lazy"
+        onLoad={handleLoad}
+        onError={handleError}
+      />
     </div>
   );
+};
+
+/**
+ * Helper function to filter valid images from an array
+ * Use this when passing images to ImageCarousel or ImageLightbox
+ */
+export const filterValidImages = (images?: string[] | null, fallbackImage?: string | null): string[] => {
+  const validImages: string[] = [];
+  
+  // Add images from array if valid
+  if (images && Array.isArray(images)) {
+    images.forEach(img => {
+      if (img && typeof img === 'string' && img.trim() !== '') {
+        validImages.push(img);
+      }
+    });
+  }
+  
+  // If no valid images in array, try fallback
+  if (validImages.length === 0 && fallbackImage && fallbackImage.trim() !== '') {
+    validImages.push(fallbackImage);
+  }
+  
+  return validImages;
+};
+
+/**
+ * Check if an image URL is valid (not empty, null, or whitespace)
+ */
+export const isValidImageUrl = (url?: string | null): boolean => {
+  return !!url && typeof url === 'string' && url.trim() !== '';
 };
