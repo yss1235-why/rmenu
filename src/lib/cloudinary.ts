@@ -136,18 +136,28 @@ const applyTransformationsToUrl = (url: string, options: TransformOptions): stri
   if (transformations.length === 0) return url;
 
   const baseUrl = url.substring(0, uploadIndex + 8);
-  const publicId = url.substring(uploadIndex + 8);
+  let publicId = url.substring(uploadIndex + 8);
 
-  // Check if there are existing transformations
-  const existingTransformMatch = publicId.match(/^([^/]+\/)+/);
-  if (existingTransformMatch) {
-    // Replace existing transformations
-    const cleanPublicId = publicId.replace(/^([^/]+\/)+/, '');
-    return `${baseUrl}${transformations.join(',')}/${cleanPublicId}`;
+  // Check if there's a version number (v1234567890/) and preserve everything after /upload/
+  // Only strip existing transformation parameters (like w_100,h_100/), not folder paths
+  const versionMatch = publicId.match(/^v\d+\//);
+  if (versionMatch) {
+    // Has version number - insert transformations after /upload/ and before version
+    return `${baseUrl}${transformations.join(',')}/${publicId}`;
+  }
+
+  // Check if starts with transformation parameters (contain underscore like w_100)
+  const hasExistingTransforms = publicId.match(/^[a-z]_[^/]+/);
+  if (hasExistingTransforms) {
+    // Remove existing transformations but keep folder/filename
+    const parts = publicId.split('/');
+    const cleanParts = parts.filter(part => !part.match(/^[a-z]_/));
+    publicId = cleanParts.join('/');
   }
 
   return `${baseUrl}${transformations.join(',')}/${publicId}`;
-};
+
+  };
 
 // Get optimized image URL using a preset
 export const getOptimizedImageUrl = (
