@@ -1,6 +1,5 @@
 import { firestoreService, COLLECTIONS, where, orderBy } from '@/lib/firebase';
-import { Restaurant, Table, RestaurantUser } from '@/types/restaurant';
-
+import { Restaurant, RestaurantUser } from '@/types/restaurant';
 export const restaurantService = {
   // Get restaurant by ID
   async getRestaurant(restaurantId: string): Promise<Restaurant | null> {
