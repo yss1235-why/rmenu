@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { RefreshCw, AlertCircle, MapPin, LogIn, UtensilsCrossed } from 'lucide-react';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { 
   ShoppingCart, 
@@ -11,11 +10,11 @@ import {
   Star,
   Clock,
   MapPin,
-  Phone,
   ChevronRight,
   RefreshCw,
   AlertCircle,
-  LogIn
+  LogIn,
+  QrCode
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -234,7 +233,19 @@ const Index = () => {
           </div>
         </div>
       </header>
-
+{/* QR Code Scan Reminder - Show when no table number */}
+      {!tableNumber && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-center gap-3 text-amber-800">
+              <QrCode className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm font-medium">
+                Scan the QR code on your table to place an order
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Active Order Banner */}
       {activeOrder && (
         <div className="bg-gradient-to-r from-success to-success/80 text-success-foreground px-4 py-3">
