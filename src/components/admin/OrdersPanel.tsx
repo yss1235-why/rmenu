@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Clock, 
   ChefHat, 
@@ -32,6 +32,7 @@ import {
 import { Order, OrderStatus } from '@/types/order';
 import { useOrders } from '@/hooks/useOrders';
 import { useToast } from '@/hooks/use-toast';
+import { useNotification } from '@/hooks/useNotification';
 
 const RESTAURANT_ID = import.meta.env.VITE_RESTAURANT_ID || 'demo';
 
@@ -46,11 +47,61 @@ const statusConfig: Record<OrderStatus, { label: string; color: string; icon: ty
 
 export const OrdersPanel = () => {
   const { toast } = useToast();
-  const { orders, loading, error, updateOrderStatus } = useOrders({ restaurantId: RESTAURANT_ID });
+  const { orders, loading, error, updateOrderStatus, removeOrderItem } = useOrders({ restaurantId: RESTAURANT_ID });
+  const { permission, requestPermission, sendNotification, isSupported } = useNotification();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeFilter, setActiveFilter] = useState<OrderStatus | 'all'>('all');
+  const prevOrderCountRef = useRef<number>(0);
 
-  const filteredOrders = activeFilter === 'all' 
+  // Request notification permission on mount
+  useEffect(() => {
+    if (isSupported && permission === 'default') {
+      requestPermission();
+    }
+  }, [isSupported, permission, requestPermission]);
+
+  // Watch for new orders and send notification
+  useEffect(() => {
+    const pendingOrders = orders.filter(o => o.status === 'pending');
+    const currentCount = pendingOrders.length;
+
+    if (prevOrderCountRef.current > 0 && currentCount > prevOrderCountRef.current) {
+      const newOrdersCount = currentCount - prevOrderCountRef.current;
+      const latestOrder = pendingOrders[0];
+      
+      sendNotification('🍽️ New Order!', {
+        body: `Table ${latestOrder?.tableNumber || 'Unknown'} - ${newOrdersCount} new order${newOrdersCount > 1 ? 's' : ''}`,
+        tag: 'new-order',
+        requireInteraction: true,
+      });
+
+      toast({
+        title: '🍽️ New Order!',
+        description: `Table ${latestOrder?.tableNumber || 'Unknown'} placed an order`,
+      });
+    }
+
+    prevOrderCountRef.current = currentCount;
+  }, [orders, sendNotification, toast]);
+
+  // Handle removing item from order
+  const handleRemoveItem = async (orderId: string, itemId: string, itemName: string) => {
+    try {
+      await removeOrderItem(orderId, itemId);
+      toast({
+        title: 'Item Removed',
+        description: `${itemName} has been removed from the order.`,
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to remove item from order.',
+      });
+    }
+  };
+
+  const filteredOrders = activeFilter === 'all'
     ? orders 
     : orders.filter(order => order.status === activeFilter);
 
@@ -254,14 +305,26 @@ export const OrdersPanel = () => {
           
           {selectedOrder && (
             <div className="space-y-4">
-              <div className="space-y-2">
+             <div className="space-y-2">
                 <h4 className="font-semibold">Items</h4>
                 {selectedOrder.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-sm">
+                  <div key={idx} className="flex justify-between items-center text-sm py-1">
                     <span>
                       {item.quantity}x {item.name}
                     </span>
-                    <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                    <div className="flex items-center gap-2">
+                      <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                      {selectedOrder.status === 'pending' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleRemoveItem(selectedOrder.id, item.id, item.name)}
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
