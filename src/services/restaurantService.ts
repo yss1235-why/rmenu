@@ -38,35 +38,7 @@ export const restaurantService = {
     );
   },
 
-  // Table operations
-  async getTables(restaurantId: string): Promise<Table[]> {
-    return firestoreService.getCollection<Table>(COLLECTIONS.TABLES, [
-      where('restaurantId', '==', restaurantId),
-      where('isActive', '==', true),
-      orderBy('tableNumber'),
-    ]);
-  },
-
-  async getTable(tableId: string): Promise<Table | null> {
-    return firestoreService.getDocument<Table>(COLLECTIONS.TABLES, tableId);
-  },
-
-  async getTableByNumber(restaurantId: string, tableNumber: string): Promise<Table | null> {
-    const tables = await firestoreService.getCollection<Table>(COLLECTIONS.TABLES, [
-      where('restaurantId', '==', restaurantId),
-      where('tableNumber', '==', tableNumber),
-    ]);
-    return tables[0] || null;
-  },
-
-  async createTable(data: Omit<Table, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
-    return firestoreService.addDocument(COLLECTIONS.TABLES, data);
-  },
-
-  async updateTable(tableId: string, data: Partial<Table>): Promise<void> {
-    return firestoreService.updateDocument(COLLECTIONS.TABLES, tableId, data);
-  },
-
+ 
   // User operations
   async getRestaurantUsers(restaurantId: string): Promise<RestaurantUser[]> {
     return firestoreService.getCollection<RestaurantUser>(COLLECTIONS.USERS, [
