@@ -187,8 +187,13 @@
   /* Menu Card Mobile Optimized */
   .menu-card {
     @apply bg-card rounded-2xl overflow-hidden shadow-md;
-    @apply active:scale-[0.98] transition-transform duration-150;
+    @apply active:scale-[0.98] transition-all duration-200 ease-out;
     -webkit-tap-highlight-color: transparent;
+    will-change: transform;
+  }
+
+  .menu-card:hover {
+    @apply shadow-lg;
   }
 
   .menu-card-image {
