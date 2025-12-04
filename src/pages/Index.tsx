@@ -43,6 +43,7 @@ import { MenuItem, CartItem } from '@/types/menu';
 import { useMenu } from '@/hooks/useMenu';
 import { useOrders, useTableOrders } from '@/hooks/useOrders';
 import { useToast } from '@/hooks/use-toast';
+import { useCart } from '@/hooks/useCart';
 import { ImageCarousel } from '@/components/ImageCarousel';
 import { ImageLightbox } from '@/components/ImageLightbox';
 import { MenuImage } from '@/components/MenuImage';
@@ -67,8 +68,18 @@ const Index = () => {
   const { createOrder } = useOrders({ restaurantId: RESTAURANT_ID });
   const { activeOrder } = useTableOrders(RESTAURANT_ID, tableNumber);
 
+ // Cart with localStorage persistence
+  const { 
+    items: cart, 
+    addItem, 
+    updateQuantity, 
+    removeItem, 
+    clearCart,
+    totalItems: cartItemCount,
+    subtotal: cartTotal 
+  } = useCart({ tableNumber });
+
   // Local state
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number>(0);
@@ -107,33 +118,13 @@ const Index = () => {
     ? menuItems.filter(item => item.available)
     : menuItems.filter(item => item.categoryId === selectedCategory && item.available);
 
-  // Cart calculations
-  const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+ // Cart calculations
   const cartTax = cartTotal * TAX_RATE;
   const cartGrandTotal = cartTotal + cartTax;
-  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // Add item to cart
   const addToCart = (item: MenuItem) => {
-    setCart(prev => {
-      const existing = prev.find(i => i.menuItemId === item.id);
-      if (existing) {
-        return prev.map(i => 
-          i.menuItemId === item.id 
-            ? { ...i, quantity: i.quantity + 1 }
-            : i
-        );
-      }
-      return [...prev, {
-        id: `cart-${Date.now()}`,
-        menuItemId: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: 1,
-        image: item.image,
-      }];
-    });
-
+    addItem(item, 1);
     toast({
       title: 'Added to cart',
       description: `${item.name} has been added to your cart.`,
@@ -141,22 +132,16 @@ const Index = () => {
   };
 
   // Update cart item quantity
-  const updateCartQuantity = (menuItemId: string, delta: number) => {
-    setCart(prev => {
-      return prev.map(item => {
-        if (item.menuItemId === menuItemId) {
-          const newQuantity = item.quantity + delta;
-          if (newQuantity <= 0) return null;
-          return { ...item, quantity: newQuantity };
-        }
-        return item;
-      }).filter(Boolean) as CartItem[];
-    });
+  const updateCartQuantity = (itemId: string, delta: number) => {
+    const item = cart.find(i => i.id === itemId);
+    if (item) {
+      updateQuantity(itemId, item.quantity + delta);
+    }
   };
 
   // Remove item from cart
-  const removeFromCart = (menuItemId: string) => {
-    setCart(prev => prev.filter(item => item.menuItemId !== menuItemId));
+  const removeFromCart = (itemId: string) => {
+    removeItem(itemId);
   };
 
   // Place order
@@ -183,7 +168,7 @@ const Index = () => {
     try {
       await createOrder(tableNumber, cart, orderNotes, TAX_RATE);
       
-      setCart([]);
+      clearCart();
       setOrderNotes('');
       setCartOpen(false);
       
@@ -478,7 +463,7 @@ const Index = () => {
                         variant="outline"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => updateCartQuantity(item.menuItemId, -1)}
+                        onClick={() => updateCartQuantity(item.id, -1)}
                       >
                         <Minus className="w-4 h-4" />
                       </Button>
@@ -487,7 +472,7 @@ const Index = () => {
                         variant="outline"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => updateCartQuantity(item.menuItemId, 1)}
+                        onClick={() => updateCartQuantity(item.id, 1)}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -495,7 +480,7 @@ const Index = () => {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-red-500"
-                        onClick={() => removeFromCart(item.menuItemId)}
+                        onClick={() => removeFromCart(item.id)}
                       >
                         <X className="w-4 h-4" />
                       </Button>
