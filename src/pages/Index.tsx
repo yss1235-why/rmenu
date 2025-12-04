@@ -43,9 +43,10 @@ import { MenuItem, CartItem } from '@/types/menu';
 import { useMenu } from '@/hooks/useMenu';
 import { useOrders, useTableOrders } from '@/hooks/useOrders';
 import { useToast } from '@/hooks/use-toast';
-import { getOptimizedImageUrl } from '@/lib/cloudinary';
 import { ImageCarousel } from '@/components/ImageCarousel';
 import { ImageLightbox } from '@/components/ImageLightbox';
+import { MenuImage } from '@/components/MenuImage';
+import { MenuItemCard } from '@/components/MenuItemCard';
 
 const RESTAURANT_ID = import.meta.env.VITE_RESTAURANT_ID || 'demo';
 const RESTAURANT_NAME = import.meta.env.VITE_RESTAURANT_NAME || 'Restaurant';
@@ -305,13 +306,13 @@ const Index = () => {
               <h2 className="text-xl font-serif font-semibold">Today's Specials</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {specialItems.map((item) => (
+             {specialItems.map((item) => (
                 <MenuItemCard 
                   key={item.id} 
                   item={item} 
-                  onAdd={addToCart}
+                  onAddToCart={addToCart}
                   onView={handleSelectItem}
-                  isSpecial={true}
+                  variant="featured"
                 />
               ))}
             </div>
@@ -331,8 +332,9 @@ const Index = () => {
               <MenuItemCard 
                 key={item.id} 
                 item={item} 
-                onAdd={addToCart}
-                onView={setSelectedItem}
+                onAddToCart={addToCart}
+                onView={handleSelectItem}
+                variant="compact"
               />
             ))}
           </div>
@@ -345,18 +347,17 @@ const Index = () => {
           {selectedItem && (
             <>
               {/* Image Carousel - Swipe here changes image only */}
-              {(selectedItem.images?.length || selectedItem.image) && (
-                <div className="relative">
-                  <ImageCarousel
-                    images={selectedItem.images?.length ? selectedItem.images : [selectedItem.image]}
-                    alt={selectedItem.name}
-                    onImageClick={(index) => {
-                      setLightboxIndex(index);
-                      setLightboxOpen(true);
-                    }}
-                  />
-                </div>
-              )}
+             <div className="relative">
+                <ImageCarousel
+                  images={selectedItem.images}
+                  fallbackImage={selectedItem.image}
+                  alt={selectedItem.name}
+                  onImageClick={(index) => {
+                    setLightboxIndex(index);
+                    setLightboxOpen(true);
+                  }}
+                />
+              </div>
               
               {/* Content Area - Swipe here changes item */}
              <div 
@@ -425,9 +426,10 @@ const Index = () => {
       </Dialog>
 
       {/* Image Lightbox */}
-      {selectedItem && (
+     {selectedItem && (
         <ImageLightbox
-          images={selectedItem.images?.length ? selectedItem.images : [selectedItem.image]}
+          images={selectedItem.images}
+          fallbackImage={selectedItem.image}
           initialIndex={lightboxIndex}
           isOpen={lightboxOpen}
           onClose={() => setLightboxOpen(false)}
@@ -456,10 +458,15 @@ const Index = () => {
             <ScrollArea className="flex-1 my-4 max-h-[50vh]">
               <div className="space-y-4">
                 {cart.map((item) => (
-                  <div key={item.menuItemId} className="flex items-center gap-3">
-                    {item.image && (
-                      <img 
-                        src={getOptimizedImageUrl(item.image, 'thumbnail')} 
+                 <div key={item.menuItemId} className="flex items-center gap-3">
+                    <MenuImage
+                      src={item.image}
+                      alt={item.name}
+                      preset="thumbnail"
+                      className="w-12 h-12 rounded-lg flex-shrink-0"
+                      aspectRatio="square"
+                      showPlaceholder={false}
+                    />
                         alt={item.name}
                         className="w-16 h-16 rounded-lg object-cover"
                       />
@@ -552,75 +559,6 @@ const Index = () => {
   );
 };
 
-// Menu Item Card Component
-interface MenuItemCardProps {
-  item: MenuItem;
-  onAdd: (item: MenuItem) => void;
-  onView: (item: MenuItem) => void;
-  isSpecial?: boolean;
-}
 
-const MenuItemCard = ({ item, onAdd, onView, isSpecial = false }: MenuItemCardProps) => {
-  const hasImage = !!item.image && item.image.trim() !== '';
-  
-  return (
-    <Card 
-      className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
-        isSpecial ? 'ring-2 ring-amber-400/50' : ''
-      }`}
-      onClick={(e) => {
-        e.stopPropagation();
-        onView(item);
-      }}
-    >
-      <div className="aspect-video overflow-hidden pointer-events-none">
-        {hasImage ? (
-          <img 
-            src={getOptimizedImageUrl(item.image, 'menuCard')} 
-            alt={item.name}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = item.image;
-            }}
-          />
-        ) : (
-          <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-            <span className="text-slate-400 text-sm">No image</span>
-          </div>
-        )}
-      </div>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold truncate">{item.name}</h3>
-              {item.isSpecial && (
-                <Star className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />
-              )}
-            </div>
-            <p className="text-sm text-slate-500 line-clamp-2 mt-1">
-              {item.description}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center justify-between mt-3">
-          <p className="text-lg font-bold text-violet-600">
-            ₹{item.price.toFixed(2)}
-          </p>
-          <Button
-            size="sm"
-            className="bg-gradient-to-r from-violet-500 to-purple-600"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdd(item);
-            }}
-          >
-            <Plus className="w-4 h-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
 
 export default Index;
