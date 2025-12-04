@@ -297,7 +297,7 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Today's Specials */}
+       {/* Today's Specials - 1 item per row on mobile (featured) */}
         {selectedCategory === 'all' && specialItems.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center gap-2 mb-4">
@@ -307,17 +307,18 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {specialItems.map((item) => (
                 <MenuItemCard 
-                key={item.id} 
-                item={item} 
-                onAdd={addToCart}
-                onView={handleSelectItem}
-              />
+                  key={item.id} 
+                  item={item} 
+                  onAdd={addToCart}
+                  onView={handleSelectItem}
+                  isSpecial={true}
+                />
               ))}
             </div>
           </section>
         )}
 
-        {/* Menu Items */}
+       {/* Menu Items - 2 columns on mobile, 2 on tablet, 3-4 on desktop */}
         {filteredItems.length === 0 ? (
           <div className="text-center py-12">
             <UtensilsCrossed className="w-16 h-16 mx-auto mb-4 text-slate-300" />
@@ -325,7 +326,7 @@ const Index = () => {
             <p className="text-slate-500">Check back later for our menu.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {filteredItems.map((item) => (
               <MenuItemCard 
                 key={item.id} 
