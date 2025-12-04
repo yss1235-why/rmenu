@@ -44,6 +44,8 @@ import { useMenu } from '@/hooks/useMenu';
 import { useOrders, useTableOrders } from '@/hooks/useOrders';
 import { useToast } from '@/hooks/use-toast';
 import { getOptimizedImageUrl } from '@/lib/cloudinary';
+import { ImageCarousel } from '@/components/ImageCarousel';
+import { ImageLightbox } from '@/components/ImageLightbox';
 
 const RESTAURANT_ID = import.meta.env.VITE_RESTAURANT_ID || 'demo';
 const RESTAURANT_NAME = import.meta.env.VITE_RESTAURANT_NAME || 'Restaurant';
@@ -67,7 +69,9 @@ const Index = () => {
   // Local state
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+ const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const [orderNotes, setOrderNotes] = useState('');
   const [isOrdering, setIsOrdering] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
@@ -310,17 +314,21 @@ const Index = () => {
         )}
       </main>
 
-      {/* Item Detail Dialog */}
+     {/* Item Detail Dialog */}
       <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
         <DialogContent className="max-w-lg">
           {selectedItem && (
             <>
-              {selectedItem.image && (
-                <div className="aspect-video -mx-6 -mt-6 mb-4 overflow-hidden rounded-t-lg">
-                  <img 
-                    src={getOptimizedImageUrl(selectedItem.image, 'menuDetail')} 
+              {/* Image Carousel */}
+              {(selectedItem.images?.length || selectedItem.image) && (
+                <div className="-mx-6 -mt-6 mb-4 overflow-hidden rounded-t-lg">
+                  <ImageCarousel
+                    images={selectedItem.images?.length ? selectedItem.images : [selectedItem.image]}
                     alt={selectedItem.name}
-                    className="w-full h-full object-cover"
+                    onImageClick={(index) => {
+                      setLightboxIndex(index);
+                      setLightboxOpen(true);
+                    }}
                   />
                 </div>
               )}
@@ -363,6 +371,16 @@ const Index = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Image Lightbox */}
+      {selectedItem && (
+        <ImageLightbox
+          images={selectedItem.images?.length ? selectedItem.images : [selectedItem.image]}
+          initialIndex={lightboxIndex}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
 
      {/* Floating Cart Button (Bottom Right) - Only shows when cart has items */}
       {cartItemCount > 0 && (
