@@ -106,7 +106,7 @@ export const MenuManagementPanel = () => {
     return matchesSearch && matchesCategory;
   });
 
- const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -115,7 +115,9 @@ export const MenuManagementPanel = () => {
       const uploadPromises = Array.from(files).map(file => uploadImage(file));
       const uploadedUrls = await Promise.all(uploadPromises);
       
-      const newImages = [...itemForm.images, ...uploadedUrls];
+      // Filter out any empty or invalid URLs
+      const validUrls = uploadedUrls.filter(url => url && url.trim() !== '');
+      const newImages = [...itemForm.images.filter(img => img && img.trim() !== ''), ...validUrls];
       setItemForm({ 
         ...itemForm, 
         images: newImages,
@@ -619,6 +621,7 @@ export const MenuManagementPanel = () => {
             price: '',
             categoryId: '',
             image: '',
+            images: [],
             available: true,
             isSpecial: false,
           });
@@ -688,14 +691,17 @@ export const MenuManagementPanel = () => {
               <Label>Images</Label>
               <div className="mt-2 space-y-3">
                 {/* Image Previews */}
-                {itemForm.images.length > 0 && (
+               {itemForm.images.length > 0 && (
                   <div className="grid grid-cols-3 gap-2">
-                    {itemForm.images.map((img, index) => (
+                    {itemForm.images.filter(img => img && img.trim() !== '').map((img, index) => (
                       <div key={index} className="relative aspect-square">
                         <img 
                           src={img} 
                           alt={`Preview ${index + 1}`}
                           className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f1f5f9" width="100" height="100"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-size="12">Error</text></svg>';
+                          }}
                         />
                         {index === 0 && (
                           <span className="absolute top-1 left-1 bg-violet-500 text-white text-xs px-1.5 py-0.5 rounded">
