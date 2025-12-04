@@ -7,7 +7,8 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
-  image: string; // Cloudinary URL
+  image: string; // Primary image URL (backward compatibility)
+  images?: string[]; // Array of all image URLs
 
   // Availability
   available: boolean;
