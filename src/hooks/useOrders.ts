@@ -94,6 +94,14 @@ export const useOrders = ({ restaurantId, realtime = true }: UseOrdersOptions) =
     []
   );
 
+  // Remove item from order
+  const removeOrderItem = useCallback(
+    async (orderId: string, itemId: string) => {
+      return orderService.removeOrderItem(orderId, itemId);
+    },
+    []
+  );
+
   // Get orders by status
   const getOrdersByStatus = useCallback(
     (status: OrderStatus): Order[] => {
@@ -127,6 +135,7 @@ export const useOrders = ({ restaurantId, realtime = true }: UseOrdersOptions) =
     updateOrderStatus,
     updatePaymentStatus,
     cancelOrder,
+    removeOrderItem,
     getOrdersByStatus,
     getOrdersByTable,
     pendingOrders,
