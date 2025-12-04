@@ -11,8 +11,9 @@ interface MenuItemCardProps {
 }
 
 export const MenuItemCard = ({ item, onAddToCart, variant = 'featured' }: MenuItemCardProps) => {
-  // Get optimized image URL from Cloudinary
-  const imageUrl = getOptimizedImageUrl(item.image, variant === 'featured' ? 'menuCard' : 'thumbnail');
+  // Get optimized image URL from Cloudinary (only if image exists)
+  const imageUrl = item.image ? getOptimizedImageUrl(item.image, variant === 'featured' ? 'menuCard' : 'thumbnail') : '';
+  const hasImage = !!item.image && item.image.trim() !== '';
 
   // Compact variant for 2-per-row grid on mobile
   if (variant === 'compact') {
@@ -20,15 +21,21 @@ export const MenuItemCard = ({ item, onAddToCart, variant = 'featured' }: MenuIt
       <div className="menu-card no-select">
         {/* Image Container - Square aspect ratio for compact */}
         <div className="relative">
-          <img
-            src={imageUrl}
-            alt={item.name}
-            className="aspect-square w-full object-cover"
-            loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = item.image;
-            }}
-          />
+          {hasImage ? (
+            <img
+              src={imageUrl}
+              alt={item.name}
+              className="aspect-square w-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = item.image;
+              }}
+            />
+          ) : (
+            <div className="aspect-square w-full bg-muted flex items-center justify-center">
+              <span className="text-muted-foreground text-xs">No image</span>
+            </div>
+          )}
           {item.isSpecial && (
             <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5">
               Special
@@ -72,15 +79,21 @@ export const MenuItemCard = ({ item, onAddToCart, variant = 'featured' }: MenuIt
     <div className="menu-card no-select">
       {/* Image Container */}
       <div className="relative">
-        <img
-          src={imageUrl}
-          alt={item.name}
-          className="menu-card-image"
-          loading="lazy"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = item.image;
-          }}
-        />
+        {hasImage ? (
+          <img
+            src={imageUrl}
+            alt={item.name}
+            className="menu-card-image"
+            loading="lazy"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = item.image;
+            }}
+          />
+        ) : (
+          <div className="menu-card-image bg-muted flex items-center justify-center">
+            <span className="text-muted-foreground">No image</span>
+          </div>
+        )}
         {item.isSpecial && (
           <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground text-xs px-2 py-1">
             Special
