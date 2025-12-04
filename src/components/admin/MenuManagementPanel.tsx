@@ -13,7 +13,8 @@ import {
   List,
   UtensilsCrossed,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -85,6 +86,7 @@ export const MenuManagementPanel = () => {
     price: '',
     categoryId: '',
     image: '',
+    images: [] as string[],
     available: true,
     isSpecial: false,
   });
@@ -104,37 +106,54 @@ export const MenuManagementPanel = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+ const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setUploading(true);
     try {
-      const imageUrl = await uploadImage(file);
-      setItemForm({ ...itemForm, image: imageUrl });
+      const uploadPromises = Array.from(files).map(file => uploadImage(file));
+      const uploadedUrls = await Promise.all(uploadPromises);
+      
+      const newImages = [...itemForm.images, ...uploadedUrls];
+      setItemForm({ 
+        ...itemForm, 
+        images: newImages,
+        image: newImages[0] || '' // First image is the primary
+      });
+      
       toast({
-        title: 'Image Uploaded',
-        description: 'Image uploaded successfully.',
+        title: 'Images Uploaded',
+        description: `${uploadedUrls.length} image(s) uploaded successfully.`,
       });
     } catch (err) {
       toast({
         variant: 'destructive',
         title: 'Upload Failed',
-        description: 'Failed to upload image. Please try again.',
+        description: 'Failed to upload images. Please try again.',
       });
     } finally {
       setUploading(false);
     }
   };
 
-  const handleAddItem = async () => {
+  const handleRemoveImage = (indexToRemove: number) => {
+    const newImages = itemForm.images.filter((_, index) => index !== indexToRemove);
+    setItemForm({
+      ...itemForm,
+      images: newImages,
+      image: newImages[0] || ''
+    });
+  };
+ const handleAddItem = async () => {
     try {
       await createMenuItem({
         name: itemForm.name,
         description: itemForm.description,
         price: parseFloat(itemForm.price),
         categoryId: itemForm.categoryId,
-        image: itemForm.image,
+        image: itemForm.images[0] || itemForm.image,
+        images: itemForm.images,
         available: itemForm.available,
         isSpecial: itemForm.isSpecial,
         order: menuItems.length,
@@ -146,6 +165,7 @@ export const MenuManagementPanel = () => {
         price: '',
         categoryId: '',
         image: '',
+        images: [],
         available: true,
         isSpecial: false,
       });
@@ -173,7 +193,8 @@ export const MenuManagementPanel = () => {
         description: itemForm.description,
         price: parseFloat(itemForm.price),
         categoryId: itemForm.categoryId,
-        image: itemForm.image,
+        image: itemForm.images[0] || itemForm.image,
+        images: itemForm.images,
         available: itemForm.available,
         isSpecial: itemForm.isSpecial,
         order: editingItem.order ?? menuItems.length,
@@ -186,10 +207,10 @@ export const MenuManagementPanel = () => {
         price: '',
         categoryId: '',
         image: '',
+        images: [],
         available: true,
         isSpecial: false,
       });
-
       toast({
         title: 'Item Updated',
         description: `${itemForm.name} has been updated.`,
@@ -286,12 +307,20 @@ export const MenuManagementPanel = () => {
   };
 
   const openEditItem = (item: MenuItem) => {
+    // Handle backward compatibility - if images array doesn't exist, use single image
+    const images = item.images && item.images.length > 0 
+      ? item.images 
+      : item.image 
+        ? [item.image] 
+        : [];
+    
     setItemForm({
       name: item.name,
       description: item.description || '',
       price: item.price.toString(),
       categoryId: item.categoryId,
       image: item.image || '',
+      images: images,
       available: item.available,
       isSpecial: item.isSpecial || false,
     });
@@ -656,39 +685,54 @@ export const MenuManagementPanel = () => {
             </div>
 
             <div>
-              <Label>Image</Label>
-              <div className="mt-2">
-                {itemForm.image ? (
-                  <div className="relative">
-                    <img 
-                      src={itemForm.image} 
-                      alt="Preview"
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-2 right-2"
-                      onClick={() => setItemForm({ ...itemForm, image: '' })}
-                    >
-                      Remove
-                    </Button>
+              <Label>Images</Label>
+              <div className="mt-2 space-y-3">
+                {/* Image Previews */}
+                {itemForm.images.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {itemForm.images.map((img, index) => (
+                      <div key={index} className="relative aspect-square">
+                        <img 
+                          src={img} 
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        {index === 0 && (
+                          <span className="absolute top-1 left-1 bg-violet-500 text-white text-xs px-1.5 py-0.5 rounded">
+                            Cover
+                          </span>
+                        )}
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => handleRemoveImage(index)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800">
-                    <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                    <span className="text-sm text-slate-500">
-                      {uploading ? 'Uploading...' : 'Click to upload image'}
-                    </span>
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={uploading}
-                    />
-                  </label>
                 )}
+                
+                {/* Upload Button */}
+                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800">
+                  <Upload className="w-6 h-6 text-slate-400 mb-1" />
+                  <span className="text-sm text-slate-500">
+                    {uploading ? 'Uploading...' : 'Click to add images'}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    {itemForm.images.length > 0 ? `${itemForm.images.length} image(s) added` : 'Multiple images supported'}
+                  </span>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                  />
+                </label>
               </div>
             </div>
 
