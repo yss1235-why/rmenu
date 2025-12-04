@@ -111,6 +111,26 @@ export const orderService = {
     });
   },
 
+  // Remove item from order
+  async removeOrderItem(orderId: string, itemId: string): Promise<void> {
+    const order = await this.getOrder(orderId);
+    if (!order) throw new Error('Order not found');
+
+    const updatedItems = order.items.filter((item) => item.id !== itemId);
+    
+    const subtotal = updatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const taxRate = order.subtotal > 0 ? order.tax / order.subtotal : 0.05;
+    const tax = subtotal * taxRate;
+    const total = subtotal + tax + (order.serviceCharge || 0) - (order.discount || 0);
+
+    return firestoreService.updateDocument(COLLECTIONS.ORDERS, orderId, {
+      items: updatedItems,
+      subtotal,
+      tax,
+      total,
+    });
+  },
+
   // Add kitchen notes
   async addKitchenNotes(orderId: string, notes: string): Promise<void> {
     return firestoreService.updateDocument(COLLECTIONS.ORDERS, orderId, {
