@@ -1,8 +1,34 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { CartItem, MenuItem, calculateCartItemTotal } from '@/types/menu';
 
-export const useCart = () => {
-  const [items, setItems] = useState<CartItem[]>([]);
+const CART_STORAGE_KEY = 'sizzle-menu-cart';
+
+interface UseCartOptions {
+  tableNumber?: string;
+}
+
+export const useCart = ({ tableNumber }: UseCartOptions = {}) => {
+  const storageKey = tableNumber 
+    ? `${CART_STORAGE_KEY}-${tableNumber}` 
+    : CART_STORAGE_KEY;
+
+  const [items, setItems] = useState<CartItem[]>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Sync to localStorage whenever items change
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(items));
+    } catch (err) {
+      console.error('Failed to save cart to localStorage:', err);
+    }
+  }, [items, storageKey]);
 
   const addItem = useCallback((item: MenuItem, quantity: number = 1) => {
     setItems((prev) => {
@@ -43,7 +69,12 @@ export const useCart = () => {
 
   const clearCart = useCallback(() => {
     setItems([]);
-  }, []);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch (err) {
+      console.error('Failed to clear cart from localStorage:', err);
+    }
+  }, [storageKey]);
 
   const totalItems = useMemo(
     () => items.reduce((sum, item) => sum + item.quantity, 0),
