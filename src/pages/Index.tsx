@@ -340,7 +340,7 @@ const Index = () => {
 
     {/* Item Detail Dialog */}
       <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden">
+        <DialogContent className="max-w-lg p-0 overflow-hidden transition-all will-change-transform">
           {selectedItem && (
             <>
               {/* Image Carousel - Swipe here changes image only */}
