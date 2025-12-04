@@ -64,7 +64,7 @@ export const TableLinksPanel = () => {
 
   const downloadQRCode = (tableLink: TableLink) => {
     // Generate QR code URL using a free QR code API
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(tableLink.fullUrl)}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(tableLink.menuUrl)}`;
     
     // Create download link
     const link = document.createElement('a');
@@ -162,10 +162,10 @@ export const TableLinksPanel = () => {
                   </Badge>
                 </div>
 
-                {/* QR Code Preview */}
+               {/* QR Code Preview */}
                 <div className="bg-white rounded-lg p-4 mb-3 flex items-center justify-center">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link.fullUrl)}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link.menuUrl)}`}
                     alt={`QR Code for Table ${link.tableNumber}`}
                     className="w-32 h-32"
                   />
@@ -174,7 +174,7 @@ export const TableLinksPanel = () => {
                 {/* URL Preview */}
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2 mb-3">
                   <p className="text-xs text-slate-500 truncate font-mono">
-                    {link.fullUrl}
+                    {link.menuUrl}
                   </p>
                 </div>
 
@@ -184,7 +184,7 @@ export const TableLinksPanel = () => {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => copyToClipboard(link.fullUrl)}
+                    onClick={() => copyToClipboard(link.menuUrl)}
                   >
                     <Copy className="w-4 h-4 mr-1" />
                     Copy
@@ -228,25 +228,25 @@ export const TableLinksPanel = () => {
               {/* Large QR Code */}
               <div className="bg-white rounded-lg p-6 flex items-center justify-center">
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(selectedTable.fullUrl)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(selectedTable.menuUrl)}`}
                   alt={`QR Code for Table ${selectedTable.tableNumber}`}
                   className="w-64 h-64"
                 />
               </div>
 
-              {/* Full URL */}
+              {/* Menu URL */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Full URL</label>
+                <label className="text-sm font-medium text-slate-700">Menu URL</label>
                 <div className="flex gap-2">
                   <Input
-                    value={selectedTable.fullUrl}
+                    value={selectedTable.menuUrl}
                     readOnly
                     className="font-mono text-sm"
                   />
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => copyToClipboard(selectedTable.fullUrl)}
+                    onClick={() => copyToClipboard(selectedTable.menuUrl)}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
@@ -265,7 +265,7 @@ export const TableLinksPanel = () => {
                 </Button>
                 <Button
                   className="flex-1 bg-gradient-to-r from-violet-500 to-purple-600"
-                  onClick={() => window.open(selectedTable.fullUrl, '_blank')}
+                  onClick={() => window.open(selectedTable.menuUrl, '_blank')}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Open Link
