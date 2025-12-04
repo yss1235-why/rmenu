@@ -7,10 +7,11 @@ import { getOptimizedImageUrl } from '@/lib/cloudinary';
 interface MenuItemCardProps {
   item: MenuItem;
   onAddToCart: (item: MenuItem) => void;
+  onView?: (item: MenuItem) => void;
   variant?: 'featured' | 'compact';
 }
 
-export const MenuItemCard = ({ item, onAddToCart, variant = 'featured' }: MenuItemCardProps) => {
+export const MenuItemCard = ({ item, onAddToCart, onView, variant = 'featured' }: MenuItemCardProps) => {
   // Get optimized image URL from Cloudinary (only if image exists)
   const imageUrl = item.image ? getOptimizedImageUrl(item.image, variant === 'featured' ? 'menuCard' : 'thumbnail') : '';
   const hasImage = !!item.image && item.image.trim() !== '';
@@ -18,7 +19,7 @@ export const MenuItemCard = ({ item, onAddToCart, variant = 'featured' }: MenuIt
   // Compact variant for 2-per-row grid on mobile
   if (variant === 'compact') {
     return (
-      <div className="menu-card no-select">
+      <div className="menu-card no-select cursor-pointer" onClick={() => onView?.(item)}>
         {/* Image Container - Square aspect ratio for compact */}
         <div className="relative">
           {hasImage ? (
@@ -75,8 +76,8 @@ export const MenuItemCard = ({ item, onAddToCart, variant = 'featured' }: MenuIt
   }
 
   // Featured variant (full-width) - original design
-  return (
-    <div className="menu-card no-select">
+ return (
+    <div className="menu-card no-select cursor-pointer" onClick={() => onView?.(item)}>
       {/* Image Container */}
       <div className="relative">
         {hasImage ? (
