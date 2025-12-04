@@ -70,11 +70,36 @@ const Index = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [selectedItemIndex, setSelectedItemIndex] = useState<number>(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [orderNotes, setOrderNotes] = useState('');
   const [isOrdering, setIsOrdering] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+
+  // Navigate to next/previous item in popup
+  const navigateItem = (direction: 'next' | 'prev') => {
+    const availableItems = filteredItems.length > 0 ? filteredItems : menuItems.filter(item => item.available);
+    if (availableItems.length === 0) return;
+    
+    let newIndex = selectedItemIndex;
+    if (direction === 'next') {
+      newIndex = selectedItemIndex >= availableItems.length - 1 ? 0 : selectedItemIndex + 1;
+    } else {
+      newIndex = selectedItemIndex <= 0 ? availableItems.length - 1 : selectedItemIndex - 1;
+    }
+    
+    setSelectedItemIndex(newIndex);
+    setSelectedItem(availableItems[newIndex]);
+  };
+
+  // Handle item selection from grid
+  const handleSelectItem = (item: MenuItem) => {
+    const availableItems = filteredItems.length > 0 ? filteredItems : menuItems.filter(i => i.available);
+    const index = availableItems.findIndex(i => i.id === item.id);
+    setSelectedItemIndex(index >= 0 ? index : 0);
+    setSelectedItem(item);
+  };
 
   // Filter items by category
   const filteredItems = selectedCategory === 'all' 
@@ -282,12 +307,11 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {specialItems.map((item) => (
                 <MenuItemCard 
-                  key={item.id} 
-                  item={item} 
-                  onAdd={addToCart}
-                  onView={setSelectedItem}
-                  isSpecial
-                />
+                key={item.id} 
+                item={item} 
+                onAdd={addToCart}
+                onView={handleSelectItem}
+              />
               ))}
             </div>
           </section>
@@ -314,14 +338,14 @@ const Index = () => {
         )}
       </main>
 
-     {/* Item Detail Dialog */}
+    {/* Item Detail Dialog */}
       <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
           {selectedItem && (
             <>
-              {/* Image Carousel */}
+              {/* Image Carousel - Swipe here changes image only */}
               {(selectedItem.images?.length || selectedItem.image) && (
-                <div className="-mx-6 -mt-6 mb-4 overflow-hidden rounded-t-lg">
+                <div className="relative">
                   <ImageCarousel
                     images={selectedItem.images?.length ? selectedItem.images : [selectedItem.image]}
                     alt={selectedItem.name}
@@ -332,40 +356,67 @@ const Index = () => {
                   />
                 </div>
               )}
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedItem.name}
-                  {selectedItem.isSpecial && (
-                    <Star className="w-5 h-5 text-warning fill-warning" />
-                  )}
-                </DialogTitle>
-                <DialogDescription>{selectedItem.description}</DialogDescription>
-              </DialogHeader>
+              
+              {/* Content Area - Swipe here changes item */}
+              <div 
+                className="p-6"
+                onTouchStart={(e) => {
+                  (e.currentTarget as any)._touchStartX = e.touches[0].clientX;
+                }}
+                onTouchEnd={(e) => {
+                  const startX = (e.currentTarget as any)._touchStartX;
+                  const endX = e.changedTouches[0].clientX;
+                  const diff = startX - endX;
+                  
+                  if (Math.abs(diff) > 50) {
+                    if (diff > 0) {
+                      navigateItem('next');
+                    } else {
+                      navigateItem('prev');
+                    }
+                  }
+                }}
+              >
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    {selectedItem.name}
+                    {selectedItem.isSpecial && (
+                      <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                    )}
+                  </DialogTitle>
+                  <DialogDescription>{selectedItem.description}</DialogDescription>
+                </DialogHeader>
 
-              <div className="py-4">
-                <p className="text-2xl font-bold text-violet-600">
-                  ₹{selectedItem.price.toFixed(2)}
+                <div className="py-4">
+                  <p className="text-2xl font-bold text-violet-600">
+                    ₹{selectedItem.price.toFixed(2)}
+                  </p>
+                </div>
+
+                {/* Item navigation hint */}
+                <p className="text-xs text-muted-foreground text-center mb-4">
+                  ← Swipe to browse items →
                 </p>
-              </div>
 
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => setSelectedItem(null)}
-                >
-                  Close
-                </Button>
-                <Button 
-                  className="flex-1 bg-gradient-to-r from-violet-500 to-purple-600"
-                  onClick={() => {
-                    addToCart(selectedItem);
-                    setSelectedItem(null);
-                  }}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add to Cart
-                </Button>
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => setSelectedItem(null)}
+                  >
+                    Close
+                  </Button>
+                  <Button 
+                    className="flex-1 bg-gradient-to-r from-violet-500 to-purple-600"
+                    onClick={() => {
+                      addToCart(selectedItem);
+                      setSelectedItem(null);
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add to Cart
+                  </Button>
+                </div>
               </div>
             </>
           )}
@@ -514,10 +565,13 @@ const MenuItemCard = ({ item, onAdd, onView, isSpecial = false }: MenuItemCardPr
       className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
         isSpecial ? 'ring-2 ring-amber-400/50' : ''
       }`}
-      onClick={() => onView(item)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onView(item);
+      }}
     >
       {item.image && (
-        <div className="aspect-video overflow-hidden">
+        <div className="aspect-video overflow-hidden pointer-events-none">
           <img 
             src={getOptimizedImageUrl(item.image, 'menuCard')} 
             alt={item.name}
