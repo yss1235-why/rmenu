@@ -432,16 +432,23 @@ const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredItems.map((item) => (
-                <Card key={item.id} className={`relative overflow-hidden ${!item.available ? 'opacity-60' : ''}`}>
-                  {item.image && (
-                    <div className="aspect-video bg-slate-100 overflow-hidden">
+               <Card key={item.id} className={`relative overflow-hidden ${!item.available ? 'opacity-60' : ''}`}>
+                  <div className="aspect-video bg-slate-100 overflow-hidden">
+                    {item.image && item.image.trim() !== '' ? (
                       <img 
                         src={item.image} 
                         alt={item.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
-                    </div>
-                  )}
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-slate-400 text-sm">No image</span>
+                      </div>
+                    )}
+                  </div>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
