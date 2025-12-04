@@ -561,6 +561,8 @@ interface MenuItemCardProps {
 }
 
 const MenuItemCard = ({ item, onAdd, onView, isSpecial = false }: MenuItemCardProps) => {
+  const hasImage = !!item.image && item.image.trim() !== '';
+  
   return (
     <Card 
       className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
@@ -571,15 +573,22 @@ const MenuItemCard = ({ item, onAdd, onView, isSpecial = false }: MenuItemCardPr
         onView(item);
       }}
     >
-      {item.image && (
-        <div className="aspect-video overflow-hidden pointer-events-none">
+      <div className="aspect-video overflow-hidden pointer-events-none">
+        {hasImage ? (
           <img 
             src={getOptimizedImageUrl(item.image, 'menuCard')} 
             alt={item.name}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = item.image;
+            }}
           />
-        </div>
-      )}
+        ) : (
+          <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+            <span className="text-slate-400 text-sm">No image</span>
+          </div>
+        )}
+      </div>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
